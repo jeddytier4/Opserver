@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace StackExchange.Opserver.Data.Dashboard.Providers
 {
-    partial class WmiDataProvider
+    internal partial class WmiDataProvider
     {
         /// <summary>
         /// Contains node's data and stores utilizastion history
@@ -72,7 +72,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
             {
                 List<Interface.InterfaceUtilization> result;
                 if (iface != null
-                    && Interfaces.FirstOrDefault(x => x == iface) != null
+                    && Interfaces.Find(x => x == iface) != null
                     && NetHistory.ContainsKey(iface.Name))
                 {
                     result = NetHistory[iface.Name];
@@ -88,7 +88,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
             {
                 List<Volume.VolumePerformanceUtilization> result;
                 if (iface != null
-                    && Volumes.FirstOrDefault(x => x == iface) != null
+                    && Volumes.Find(x => x == iface) != null
                     && VolumePerformanceHistory.ContainsKey(iface.Name))
                 {
                     result = VolumePerformanceHistory[iface.Name];
@@ -138,8 +138,9 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
         {
             return Task.FromResult(new List<GraphPoint>());
         }
-        public override Task<List<DoubleGraphPoint>> GetPerformanceUtilizationAsync(Volume iface, DateTime? start, DateTime? end, int? pointCount = null) =>
-            Task.FromResult(FilterHistory<Volume.VolumePerformanceUtilization, DoubleGraphPoint>(GetWmiNodeById(iface.NodeId)?.GetVolumePerformanceUtilizationHistory(iface), start, end).ToList());
+
+        public override Task<List<DoubleGraphPoint>> GetPerformanceUtilizationAsync(Volume volume, DateTime? start, DateTime? end, int? pointCount = null) =>
+            Task.FromResult(FilterHistory<Volume.VolumePerformanceUtilization, DoubleGraphPoint>(GetWmiNodeById(volume.NodeId)?.GetVolumePerformanceUtilizationHistory(volume), start, end).ToList());
 
         public override Task<List<DoubleGraphPoint>> GetUtilizationAsync(Interface iface, DateTime? start, DateTime? end, int? pointCount = null) =>
             Task.FromResult(FilterHistory<Interface.InterfaceUtilization, DoubleGraphPoint>(GetWmiNodeById(iface.NodeId)?.GetInterfaceUtilizationHistory(iface), start, end).ToList());
@@ -205,14 +206,14 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                     return this;
                 });
             }
-            
+
             public double GetCalculatedValue(string property, double scale = 1D) => GetCalculatedValue(_previousData, property, scale);
 
             private double GetCalculatedValue(PerfRawData previousData, string property, double scale)
             {
                 var timestampDiff = Math.Max(1, Timestamp - previousData.Timestamp);
                 var valueDiff = Convert.ToUInt64(_data[property]) - Convert.ToUInt64(previousData._data[property]);
-                var scaledValueDiff = valueDiff * scale;                
+                var scaledValueDiff = valueDiff * scale;
                 return scaledValueDiff / timestampDiff;
             }
         }

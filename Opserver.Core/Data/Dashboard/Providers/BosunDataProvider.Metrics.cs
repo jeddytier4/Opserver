@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Jil;
+using System.Runtime.Serialization;
 
 namespace StackExchange.Opserver.Data.Dashboard.Providers
 {
@@ -13,17 +14,18 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
     {
         public class TSDBQuery
         {
-            // ReSharper disable InconsistentNaming
-            public string start { get; set; }
-            public string end { get; set; }
-            public List<object> queries { get; set; }
-            // ReSharper restore InconsistentNaming
+            [DataMember(Name = "start")]
+            public string Start { get; set; }
+            [DataMember(Name = "end")]
+            public string End { get; set; }
+            [DataMember(Name = "queries")]
+            public List<object> Queries { get; set; }
 
             public TSDBQuery(DateTime? startTime, DateTime? endTime = null)
             {
-                start = ConvertTime(startTime, DateTime.UtcNow.AddYears(-1));
-                if (endTime.HasValue) end = ConvertTime(endTime, DateTime.UtcNow);
-                queries = new List<object>();
+                Start = ConvertTime(startTime, DateTime.UtcNow.AddYears(-1));
+                if (endTime.HasValue) End = ConvertTime(endTime, DateTime.UtcNow);
+                Queries = new List<object>();
             }
 
             public static string ConvertTime(DateTime? date, DateTime valueIfNull)
@@ -52,7 +54,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                 {
                     foreach (var p in tags) query.tags[p.Key] = p.Value;
                 }
-                queries.Add(query);
+                Queries.Add(query);
             }
         }
 
@@ -92,9 +94,11 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                                 .ToDictionary(s => s.Key.NormalizeForCache(), s => s.ToList());
                         }
                         else
+                        {
                             result.Series[metricName] = apiResult.Series.ToDictionary(s => s.Host.NormalizeForCache());
+                        }
                     };
-                    
+
                     var c = addMetric(BosunMetric.Globals.CPU, null);
                     var m = addMetric(BosunMetric.Globals.MemoryUsed, null);
                     var n = addMetric(BosunMetric.Globals.NetBytes, new[] {BosunMetric.Tags.Direction});
@@ -104,7 +108,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                 }, 60.Seconds(), 60.Minutes()));
             }
         }
-        
+
         public class IntervalCache
         {
             public TimeSpan TimeSpan { get; set; }
@@ -126,7 +130,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
             }
         }
     }
-    
+
     public class BosunMetric
     {
         public BosunMetricType? Type { get; set; }
@@ -167,11 +171,15 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
         public static class TagCombos
         {
             public static readonly Dictionary<string, string>
-                AllNetDirections = new Dictionary<string, string> {{Tags.Direction, "*"}},
-                AllDisks = new Dictionary<string, string> {{Tags.Disk, "*"}};
+                AllNetDirections = new Dictionary<string, string> {[Tags.Direction] = "*" },
+                AllDisks = new Dictionary<string, string> {[Tags.Disk] = "*" };
 
             public static Dictionary<string, string> AllDirectionsForInterface(string ifaceId)
-                => new Dictionary<string, string> {{Tags.Direction, "*"}, {Tags.IFace, ifaceId}};
+                => new Dictionary<string, string>
+                {
+                    [Tags.Direction] = "*",
+                    [Tags.IFace] = ifaceId
+                };
         }
 
         public static bool IsCounter(string metric, string host)
@@ -214,24 +222,26 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
 
         public static string GetDenormalized(string metric, string host, Dictionary<string, List<string>> metricCache)
         {
-            if (host != null && !host.Contains("*") && !host.Contains("|"))
+            if (host == null || host.Contains("*") || host.Contains("|"))
             {
-                switch (metric)
-                {
-                    case Globals.CPU:
-                    case Globals.MemoryUsed:
-                    case Globals.NetBondBytes:
-                    case Globals.NetOtherBytes:
-                    case Globals.NetTunnelBytes:
-                    case Globals.NetVirtualBytes:
-                    case Globals.NetBytes:
-                        var result = $"__{host}.{metric}";
-                        List<string> hostMetrics;
-                        // Only return this denormalized metric optimization if it's actually configured in the Bosun relay
-                        if (metricCache != null && metricCache.TryGetValue(host, out hostMetrics) && hostMetrics.Contains(result))
-                            return result;
-                        break;
-                }
+                return metric;
+            }
+
+            switch (metric)
+            {
+                case Globals.CPU:
+                case Globals.MemoryUsed:
+                case Globals.NetBondBytes:
+                case Globals.NetOtherBytes:
+                case Globals.NetTunnelBytes:
+                case Globals.NetVirtualBytes:
+                case Globals.NetBytes:
+                    var result = $"__{host}.{metric}";
+                    List<string> hostMetrics;
+                    // Only return this denormalized metric optimization if it's actually configured in the Bosun relay
+                    if (metricCache != null && metricCache.TryGetValue(host, out hostMetrics) && hostMetrics.Contains(result))
+                        return result;
+                    break;
             }
             return metric;
         }
@@ -239,9 +249,9 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
 
     public enum BosunMetricType
     {
-        gauge,
-        counter,
-        rate
+        gauge = 0,
+        counter = 1,
+        rate = 2
     }
 
     public class BosunMetricDescription
@@ -291,11 +301,11 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
         public List<float[]> Data { get; set; }
 
         private List<GraphPoint> _pointData;
-        public List<GraphPoint> PointData => (_pointData ?? (_pointData = Data.Select(p => new GraphPoint
+        public List<GraphPoint> PointData => _pointData ?? (_pointData = Data.Select(p => new GraphPoint
         {
             DateEpoch = (long) p[0],
             Value = p[1]
-        }).ToList()));
+        }).ToList());
 
         public PointSeries() { }
         public PointSeries(string host)

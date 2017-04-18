@@ -29,7 +29,7 @@ namespace StackExchange.Opserver.Controllers
 
         private readonly Func<string, IDisposable> _startStep = name => MiniProfiler.Current.Step(name);
         private readonly Action<IDisposable> _stopStep = s => s?.Dispose();
-        
+
         protected override void Initialize(System.Web.Routing.RequestContext requestContext)
         {
             _betweenInitializeAndActionExecuting = _startStep(nameof(Initialize));
@@ -46,7 +46,7 @@ namespace StackExchange.Opserver.Controllers
             }
 
             var iSettings = SettingsModule as Settings;
-            if (iSettings != null && !iSettings.Enabled)
+            if (iSettings?.Enabled == false)
                 filterContext.Result = DefaultAction();
             else
                 base.OnActionExecuting(filterContext);
@@ -61,6 +61,7 @@ namespace StackExchange.Opserver.Controllers
             }
             base.OnActionExecuted(filterContext);
         }
+
         protected override void OnResultExecuting(ResultExecutingContext filterContext)
         {
             if (!filterContext.IsChildAction)
@@ -102,7 +103,7 @@ namespace StackExchange.Opserver.Controllers
 
             return View("NoConfiguration");
         }
-        
+
         [Route("no-config")]
         public ViewResult NoConfig()
         {
@@ -144,16 +145,16 @@ namespace StackExchange.Opserver.Controllers
         public void SetTitle(string title)
         {
             title = title.HtmlEncode();
-            var pageTitle = title.IsNullOrEmpty() ? SiteSettings.SiteName : string.Concat(title, " - ", SiteSettings.SiteName);
-            ViewData[ViewDataKeys.PageTitle] = pageTitle;
+            ViewData[ViewDataKeys.PageTitle] = title.IsNullOrEmpty() ? SiteSettings.SiteName : string.Concat(title, " - ", SiteSettings.SiteName);
         }
 
         /// <summary>
         /// returns ContentResult with the parameter 'content' as its payload and "text/plain" as media type.
         /// </summary>
-        protected ContentResult TextPlain(object content)
+        /// <param name="content">The text content to render</param>
+        protected ContentResult TextPlain(string content)
         {
-            return new ContentResult { Content = content.ToString(), ContentType = "text/plain" };
+            return new ContentResult { Content = content, ContentType = "text/plain" };
         }
 
         protected ContentResult ContentNotFound(string message = null)

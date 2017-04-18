@@ -24,7 +24,7 @@ namespace StackExchange.Opserver.Data.SQL
                 //yield return TCPListeners;
             }
         }
-        
+
         public bool IsAllAGsPrimary
         {
             get { return AvailabilityGroups.Data?.Where(ag => ag.HasDatabases).All(ag => ag.IsPrimaryReplica) ?? false; }
@@ -46,7 +46,7 @@ namespace StackExchange.Opserver.Data.SQL
         public ClusterMemberTypes ClusterType => AGClusterMember.Type;
 
         public AGClusterMemberInfo AGClusterMember =>
-            AGClusterInfo.Data?.Members.FirstOrDefault(c => c.IsLocal) ?? new AGClusterMemberInfo();
+            AGClusterInfo.Data?.Members.Find(c => c.IsLocal) ?? new AGClusterMemberInfo();
 
         public bool Equals(SQLNode other)
         {

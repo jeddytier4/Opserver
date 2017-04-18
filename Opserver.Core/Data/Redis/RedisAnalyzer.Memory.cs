@@ -13,7 +13,7 @@ using StackExchange.Redis;
 
 namespace StackExchange.Opserver.Data.Redis
 {
-    public class RedisAnalyzer
+    public static class RedisAnalyzer
     {
         internal static readonly Dictionary<RedisConnectionInfo, List<KeyMatcher>> KeyMatchers;
         static RedisAnalyzer()
@@ -29,14 +29,9 @@ namespace StackExchange.Opserver.Data.Redis
             }
         }
 
-        public static void AnalyzerInstanceMemory(RedisConnectionInfo connectionInfo)
-        {
-            //TODO: Get databases, suck in cache for each
-        }
-
         private static string GetMemoryAnalysisKey(RedisConnectionInfo connectionInfo, int database)
         {
-            return $"redis-memory-analysis-{connectionInfo.Host}:{connectionInfo.Port.ToString()}:{database.ToString()}";
+            return $"redis-memory-analysis-{connectionInfo.Host}:{connectionInfo.Port}:{database}";
         }
 
         public static RedisMemoryAnalysis AnalyzeDatabaseMemory(RedisConnectionInfo connectionInfo, int database)
@@ -60,6 +55,7 @@ namespace StackExchange.Opserver.Data.Redis
                 AllowAdmin = true,
                 ClientName = "Status-MemoryAnalyzer",
                 Password = connectionInfo.Password,
+                Ssl = connectionInfo.Settings.UseSSL,
                 EndPoints =
                 {
                     { connectionInfo.Host, connectionInfo.Port }
@@ -107,7 +103,7 @@ namespace StackExchange.Opserver.Data.Redis
                                .OrderByDescending(tk => tk.TotalBytes)
                                .Take(50);
             }
-        }  
+        }
 
         public MonitorStatus MonitorStatus
         {
@@ -122,6 +118,7 @@ namespace StackExchange.Opserver.Data.Redis
                 return MonitorStatus.Good;
             }
         }
+
         public string MonitorStatusReason
         {
             get
@@ -174,9 +171,9 @@ namespace StackExchange.Opserver.Data.Redis
                             {
                                 TallyDebugLine(key, x.Result);
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
-                                TallyError(e);
+                                TallyError();
                             }
                         });
                 }
@@ -185,7 +182,7 @@ namespace StackExchange.Opserver.Data.Redis
             AnalysisTime = sw.Elapsed;
             sw.Stop();
         }
-        
+
         public RedisMemoryAnalysis(RedisConnectionInfo connectionInfo, int database)
         {
             CreationDate = DateTime.UtcNow;
@@ -236,7 +233,7 @@ namespace StackExchange.Opserver.Data.Redis
             return null;
         }
 
-        internal void TallyError(Exception e)
+        internal void TallyError()
         {
             Interlocked.Increment(ref _errorCount);
         }
@@ -270,7 +267,7 @@ namespace StackExchange.Opserver.Data.Redis
         public long ValueByteSize => _valueByteSize;
         public long TotalByteSize => _keyByteSize + _valueByteSize;
 
-        public SortedList<long, string> TopKeys = new SortedList<long, string>(50, new DescLongCompare());
+        public readonly SortedList<long, string> TopKeys = new SortedList<long, string>(50, new DescLongCompare());
 
         public void Tally(string key, long keySize, long valueSize)
         {
@@ -287,7 +284,7 @@ namespace StackExchange.Opserver.Data.Redis
             }
         }
 
-        class DescLongCompare : IComparer<long>
+        private class DescLongCompare : IComparer<long>
         {
             public int Compare(long x, long y)
             {

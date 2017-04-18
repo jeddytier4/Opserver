@@ -6,14 +6,14 @@ namespace StackExchange.Opserver
 {
     public partial class HAProxySettings : Settings<HAProxySettings>
     {
-        public override bool Enabled => Instances.Any() || Groups.Any();
+        public override bool Enabled => Instances.Count > 0 || Groups.Count > 0;
 
         public List<Group> Groups { get; set; } = new List<Group>();
 
         public List<Instance> Instances { get; set; } = new List<Instance>();
 
-        public Dictionary<string, string> Aliases { get; private set; } = new Dictionary<string, string>();
-        
+        public Dictionary<string, string> Aliases { get; set; } = new Dictionary<string, string>();
+
         public InstanceSettings GetInstanceSettings(Instance instance, Group group)
         {
             // Grab setting from node, then category, then global
@@ -43,11 +43,11 @@ namespace StackExchange.Opserver
         /// </summary>
         public string Password { get; set; }
 
-
         /// <summary>
         /// Default admin username to use on all instances
         /// </summary>
         public string AdminUser { get; set; }
+
         /// <summary>
         /// Default admin password to use on all instances
         /// </summary>
@@ -64,7 +64,7 @@ namespace StackExchange.Opserver
             /// Instances in this group
             /// </summary>
             public List<Instance> Instances { get; set; } = new List<Instance>();
-            
+
             /// <summary>
             /// The name that appears for this group
             /// </summary>

@@ -7,7 +7,7 @@ namespace StackExchange.Opserver.Monitoring
 {
     public class OpserverProfileProvider : BaseProfilerProvider
     {
-        public WebRequestProfilerProvider WebProfilerProvider = new WebRequestProfilerProvider();
+        public readonly WebRequestProfilerProvider WebProfilerProvider = new WebRequestProfilerProvider();
 
         public const string LocalContextKey = "ContextProfiler";
         public static bool EnablePollerProfiling { get; set; }
@@ -77,7 +77,7 @@ namespace StackExchange.Opserver.Monitoring
         {
             var profiler = GetContextProfiler();
             if (profiler == null) return;
-            
+
             StopProfiler(profiler);
             SaveProfiler(profiler);
             CallContext.LogicalSetData(LocalContextKey, null);

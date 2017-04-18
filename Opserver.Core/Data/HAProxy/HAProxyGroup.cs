@@ -15,7 +15,7 @@ namespace StackExchange.Opserver.Data.HAProxy
         public string Name => Settings.Name;
         public string Description => Settings.Description;
         public List<HAProxyInstance> Instances { get; }
-        
+
         public MonitorStatus MonitorStatus => Instances.GetWorstStatus();
 
         public string MonitorStatusReason => Instances.GetReasonSummary();
@@ -28,8 +28,9 @@ namespace StackExchange.Opserver.Data.HAProxy
         }
 
         /// <summary>
-        /// Creates a single instance group for consistent management at a higher level
+        /// Creates a single instance group for consistent management at a higher level.
         /// </summary>
+        /// <param name="instance">The <see cref="HAProxyInstance"/> to create a single-item group for.</param>
         public HAProxyGroup(HAProxySettings.Instance instance)
         {
             Settings = new HAProxySettings.Group
@@ -51,13 +52,14 @@ namespace StackExchange.Opserver.Data.HAProxy
         {
             return string.Concat(Name, " - ", Instances != null ? Instances.Count.ToString() + " instances" : "");
         }
-        
+
         /// <summary>
         /// Gets the HAProxy instance with the given name, null if it doesn't exist
         /// </summary>
+        /// <param name="name">The name of the <see cref="HAProxyGroup"/> to fetch.</param>
         public static HAProxyGroup GetGroup(string name)
         {
-            return HAProxyModule.Groups.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.InvariantCultureIgnoreCase));
+            return HAProxyModule.Groups.Find(e => string.Equals(e.Name, name, StringComparison.InvariantCultureIgnoreCase));
         }
 
         /// <summary>

@@ -26,6 +26,7 @@ namespace StackExchange.Opserver.Data.SQL
         public class WhoIsActiveRow
         {
             // ReSharper disable InconsistentNaming
+#pragma warning disable IDE1006 // Naming Styles
             public short session_id { get; internal set; }
             public string sql_text { get; internal set; }
             public string sql_command { get; internal set; }
@@ -38,7 +39,7 @@ namespace StackExchange.Opserver.Data.SQL
             public long? tempdb_allocations { get; internal set; }
             public long? tempdb_current { get; internal set; }
             public short? blocking_session_id { get; internal set; }
-            
+
             public long? reads { get; internal set; }
             public long? writes { get; internal set; }
             public long? physical_reads { get; internal set; }
@@ -58,12 +59,18 @@ namespace StackExchange.Opserver.Data.SQL
             public DateTime collection_time { get; internal set; }
 
             public string additional_info { get; internal set; }
+#pragma warning restore IDE1006 // Naming Styles
             // ReSharper restore InconsistentNaming
         }
 
         public class ActiveOperation
         {
             public TimeSpan Duration => CollectionTime - StartTime;
+            public TimeSpan? TotalTime => PercentComplete == null
+                ? default(TimeSpan)
+                : TimeSpan.FromTicks((long)(Duration.Ticks * 100 / PercentComplete));
+            public TimeSpan? TimeLeft => TotalTime - Duration;
+
             public short SessionId { get; internal set; }
 
             private string _sqlText;
@@ -72,6 +79,7 @@ namespace StackExchange.Opserver.Data.SQL
                 get { return _sqlText; }
                 set { _sqlText = value.IsNullOrEmptyReturn("").Replace("<?query --\r\n", "").Replace("\r\n--?>", ""); }
             }
+
             public string SqlCommand { get; internal set; }
             private string _loginName;
             public string LoginName
@@ -79,6 +87,7 @@ namespace StackExchange.Opserver.Data.SQL
                 get { return _loginName; }
                 set { _loginName = _loginLookups.ContainsKey(value) ? _loginLookups[value] : value.Split(StringSplits.BackSlash).Last(); }
             }
+
             public string WaitInfo { get; internal set; }
             public short? Tasks { get; internal set; }
             public string TransactionLogWrites { get; internal set; }
@@ -111,7 +120,7 @@ namespace StackExchange.Opserver.Data.SQL
             public DateTime CollectionTime { get; internal set; }
 
             // TODO: Additional Info
-            
+
             public ShowPlanXML GetShowPlanXML()
             {
                 if (QueryPlan == null) return new ShowPlanXML();
@@ -146,6 +155,7 @@ namespace StackExchange.Opserver.Data.SQL
                 Status = row.status;
                 TransactionStartTime = row.tran_start_time;
                 OpenTransactionCount = row.open_tran_count;
+                PercentComplete = row.percent_complete;
                 HostName = row.host_name;
                 DatabaseName = row.database_name;
 
@@ -161,7 +171,7 @@ Exec sp_WhoIsActive @format_output = 0;
 
             private static readonly Dictionary<string, string> _loginLookups = new Dictionary<string, string>
             {
-                {"NT AUTHORITY\\SYSTEM", "(Local System)"}
+                ["NT AUTHORITY\\SYSTEM"] = "(Local System)"
             };
         }
 
@@ -239,11 +249,11 @@ Exec sp_WhoIsActive @format_output = 0;
             public bool WildcardSearch { get; set; }
 
             public string FilterFieldString => FilterField.ToString().ToLower();
-            
+
             public string FilterValueString => FilterValue.HasValue() ? string.Format("{0}{1}{0}", WildcardSearch ? "%" : "", FilterValue) : "";
 
             //TODO: Sort Order
-            
+
             public ActiveSearchOptions()
             {
                 // Setup the default options
@@ -293,22 +303,22 @@ Exec sp_WhoIsActive
 
             public enum ShowSleepingSessionOptions
             {
-                None = 0,
+                [Description("None")] None = 0,
                 [Description("Open Transactions")] OpenTransaction = 1,
-                All = 2
+                [Description("All")] All = 2
             }
 
             public enum GetPlansOptions
             {
-                None = 0,
+                [Description("None")] None = 0,
                 [Description("By Statement Offset")] ByStatementOffset = 1,
                 [Description("By Plan Handle")] ByPlanHandle = 2
             }
 
             public enum GetTaskInfoOptions
             {
-                None = 0,
-                Lightweight = 1,
+                [Description("None")] None = 0,
+                [Description("Lightweight")] Lightweight = 1,
                 [Description("AllAvailable")] AllAvailable = 2
             }
 

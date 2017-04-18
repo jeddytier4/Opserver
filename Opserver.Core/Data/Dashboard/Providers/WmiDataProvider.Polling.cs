@@ -38,10 +38,10 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                     SetReferences();
 
                     // first run, do a follow-up poll for all stats on the first pass
-                    if (_nodeInfoAvailable == false)
+                    if (!_nodeInfoAvailable)
                     {
                         _nodeInfoAvailable = true;
-                        await PollStats();
+                        await PollStats().ConfigureAwait(false);
                     }
                 }
                 catch (COMException e)
@@ -54,7 +54,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
 
             public async Task<Node> PollStats()
             {
-                if (_nodeInfoAvailable == false)
+                if (!_nodeInfoAvailable)
                 {
                     return this;
                 }
@@ -112,7 +112,7 @@ namespace StackExchange.Opserver.Data.Dashboard.Providers
                     {
                         LastBoot = ManagementDateTimeConverter.ToDateTime(data.LastBootUpTime);
                         TotalMemory = data.TotalVisibleMemorySize * 1024;
-                        MemoryUsed = TotalMemory - data.FreePhysicalMemory * 1024;
+                        MemoryUsed = TotalMemory - (data.FreePhysicalMemory * 1024);
                         KernelVersion = Version.Parse(data.Version);
                         MachineType = data.Caption.ToString() + " " + data.Version.ToString();
                     }
@@ -161,7 +161,7 @@ SELECT Name,
                     foreach (var data in await q.GetDynamicResultAsync().ConfigureAwait(false))
                     {
                         string id = $"{data.DeviceID}";
-                        var i = Interfaces.FirstOrDefault(x => x.Id == id) ?? new Interface();
+                        var i = Interfaces.Find(x => x.Id == id) ?? new Interface();
                         indexMap[data.InterfaceIndex] = i;
 
                         i.Id = id;
@@ -195,8 +195,7 @@ SELECT Name,
                     {
                         foreach (var data in await q.GetDynamicResultAsync().ConfigureAwait(false))
                         {
-                            var teamInterface = Interfaces.FirstOrDefault(x => x.Caption == data.Name);
-                            //var teamInterface = Interfaces.FirstOrDefault(x => x.Id == data.InstanceID);
+                            var teamInterface = Interfaces.Find(x => x.Caption == data.Name);
 
                             if (teamInterface == null)
                             {
@@ -218,9 +217,7 @@ SELECT Name,
                             if (teamNamesToInterfaces.TryGetValue(teamName, out teamInterface))
                             {
                                 var adapterName = data.Name;
-                                var memberInterface = Interfaces.FirstOrDefault(x => x.Name == adapterName);
-                                //var adapterId = data.InstanceID;
-                                //var memberInterface = Interfaces.FirstOrDefault(x => x.Id == adapterId);
+                                var memberInterface = Interfaces.Find(x => x.Name == adapterName);
 
                                 if (memberInterface == null)
                                 {
@@ -291,7 +288,7 @@ SELECT Caption,
                     foreach (var disk in await q.GetDynamicResultAsync().ConfigureAwait(false))
                     {
                         var id = $"{disk.DeviceID}";
-                        var v = Volumes.FirstOrDefault(x => x.Id == id) ?? new Volume();
+                        var v = Volumes.Find(x => x.Id == id) ?? new Volume();
 
                         v.Id = $"{disk.DeviceID}";
                         v.Available = disk.FreeSpace;
@@ -417,7 +414,7 @@ SELECT Caption,
                     {
                         var perfData = new PerfRawData(this, data);
                         var name = perfData.Identifier;
-                        var iface = Interfaces.FirstOrDefault(i => name == GetCounterName(i.Name));
+                        var iface = Interfaces.Find(i => name == GetCounterName(i.Name));
                         if (iface == null) continue;
 
                         iface.InBps = (float)perfData.GetCalculatedValue("BytesReceivedPersec", 10000000);
@@ -470,7 +467,7 @@ SELECT Caption,
                         var perfData = new PerfRawData(this, data);
 
                         var name = perfData.Identifier;
-                        var iface = Volumes.FirstOrDefault(i => name == GetCounterName(i.Name));
+                        var iface = Volumes.Find(i => name == GetCounterName(i.Name));
                         if (iface == null) continue;
 
                         iface.ReadBps = (float)perfData.GetCalculatedValue("DiskReadBytesPersec", 10000000);
@@ -499,16 +496,9 @@ SELECT Caption,
 
             #region private helpers
 
-            private async Task<bool> GetIsVMHost()
-            {
-                const string query = "SELECT Name FROM Win32_OptionalFeature WHERE (Name = 'Microsoft-Hyper-V' OR Name = 'Microsoft-Hyper-V-Hypervisor') AND InstallState = 1";
+            private Task<bool> GetIsVMHost()
+                => Wmi.ClassExists(Endpoint, "Win32_PerfRawData_HvStats_HyperVHypervisorLogicalProcessor");
 
-                using (var q = Wmi.Query(Endpoint, query))
-                {
-                    var data = await q.GetFirstResultAsync().ConfigureAwait(false);
-                    return data != null;
-                }
-            }
 
             private async Task<string> GetRealAdapterName(string pnpDeviceId)
             {

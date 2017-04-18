@@ -4,6 +4,7 @@
   <Import Project="..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.1\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props" Condition="Exists('..\packages\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.1.0.1\build\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <LangVersion>6</LangVersion>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>
@@ -41,6 +42,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <CodeAnalysisRuleSet>Opserver.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -50,6 +52,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <CodeAnalysisRuleSet>Opserver.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Antlr3.Runtime, Version=3.5.0.2, Culture=neutral, PublicKeyToken=eb42632606e9261f, processorArchitecture=MSIL">
@@ -469,6 +472,9 @@
     <Content Include="Views\SQL\Databases.Modal.Columns.cshtml">
       <DependentUpon>Databases.Modal.cshtml</DependentUpon>
     </Content>
+    <Content Include="Views\SQL\Databases.Modal.Indexes.cshtml">
+      <DependentUpon>Databases.Modal.cshtml</DependentUpon>
+    </Content>
     <Content Include="Views\SQL\Databases.Modal.MissingIndexes.cshtml">
       <DependentUpon>Databases.Modal.cshtml</DependentUpon>
     </Content>
@@ -534,9 +540,6 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\DataKeys.cs" />
-    <Compile Include="Helpers\HtmlUtilities.CacheBreaker.cs">
-      <DependentUpon>HtmlUtilities.cs</DependentUpon>
-    </Compile>
     <Compile Include="Helpers\HtmlUtilities.cs" />
     <Compile Include="Helpers\Status.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -701,7 +704,7 @@
     <Content Include="Views\Elastic\Node.cshtml" />
     <Content Include="Views\Redis\Instance.cshtml" />
     <Content Include="Views\Redis\Instance.Selector.cshtml" />
-    <Content Include="Views\Shared\IssuesList.cshtml" />
+    <Content Include="Views\Shared\IssuesButton.cshtml" />
     <Content Include="Views\Shared\TopRefresh.cshtml" />
     <Content Include="Views\Shared\NoConfiguration.cshtml" />
     <Content Include="Views\SQL\Servers.cshtml" />
@@ -714,6 +717,10 @@
     <Content Include="Views\Hub\Index.SQL.cshtml" />
     <Content Include="Views\Hub\Index.Dashboard.cshtml" />
     <Content Include="Views\Hub\Index.Issues.cshtml" />
+    <Content Include="Opserver.ruleset">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Views\Shared\Issues.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\js\Scripts.js" />

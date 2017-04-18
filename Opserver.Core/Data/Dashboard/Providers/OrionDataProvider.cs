@@ -157,7 +157,7 @@ Order By NodeID", commandTimeout: QueryTimeoutMs).ConfigureAwait(false);
                         n.Volumes = volumes.Where(v => v.NodeId == n.Id).ToList();
                         n.Apps = apps.Where(a => a.NodeId == n.Id).ToList();
                         n.VMs = nodes.Where(on => on.VMHostID == n.Id).ToList();
-                        n.VMHost = nodes.FirstOrDefault(on => n.VMHostID == on.Id);
+                        n.VMHost = nodes.Find(on => n.VMHostID == on.Id);
                         n.SetReferences();
 
                         if (Settings.ChildStatusForHealthy && n.Status == NodeStatus.Up && n.ChildStatus.HasValue)
@@ -169,10 +169,9 @@ Order By NodeID", commandTimeout: QueryTimeoutMs).ConfigureAwait(false);
                         {
                             n.Issues = new List<Issue<Node>>
                             {
-                                new Issue<Node>(n)
+                                new Issue<Node>(n, "Orion", n.PrettyName)
                                 {
                                     Date = n.LastSync ?? DateTime.UtcNow,
-                                    Title = n.PrettyName,
                                     Description = n.StatusDescription,
                                     MonitorStatus = n.Status.ToMonitorStatus()
                                 }
@@ -204,7 +203,7 @@ Select Cast(i.InterfaceID as varchar(50)) as InterfaceID, ipa.IPAddress, ipa.Sub
          On ipa.NodeID = i.NodeID
          And ipa.InterfaceIndex = i.InterfaceIndex",
                 commandTimeout: QueryTimeoutMs).ConfigureAwait(false);
-            
+
             foreach (var m in result)
             {
                 IPNet net;
@@ -307,8 +306,8 @@ Select DateDiff(s, '1970-01-01', itd.DateTime) as DateEpoch,
                             And {dateRange})/@intervals) = 0
  Group By itd.DateTime
  Order By itd.DateTime";
-            
-            if (!node.PrimaryInterfaces.Any()) return new List<DoubleGraphPoint>();
+
+            if (node.PrimaryInterfaces.Count == 0) return new List<DoubleGraphPoint>();
 
             using (var conn = await GetConnectionAsync().ConfigureAwait(false))
             {
@@ -350,7 +349,7 @@ Select DateDiff(s, '1970-01-01', vp.DateTime) as DateEpoch,
                             And {dateRange})/@intervals) = 0
  Group By vp.DateTime
  Order By vp.DateTime";
-            
+
             using (var conn = await GetConnectionAsync().ConfigureAwait(false))
             {
                 var result = await conn.QueryAsync<Volume.VolumePerformanceUtilization>(
@@ -423,7 +422,7 @@ Select DateDiff(s, '1970-01-01 00:00:00', v.DateTime) as DateEpoch,
             return (await UtilizationQueryAsync<Volume.VolumeUtilization>(volume.Id, allSql, sampledSql, "v.DateTime", start, end, pointCount).ConfigureAwait(false)).ToList<GraphPoint>();
         }
 
-        public override async Task<List<DoubleGraphPoint>> GetUtilizationAsync(Interface nodeInteface, DateTime? start, DateTime? end, int? pointCount = null)
+        public override async Task<List<DoubleGraphPoint>> GetUtilizationAsync(Interface iface, DateTime? start, DateTime? end, int? pointCount = null)
         {
             const string allSql = @"
 Select DateDiff(s, '1970-01-01 00:00:00', itd.DateTime) as DateEpoch,
@@ -452,7 +451,7 @@ Select DateDiff(s, '1970-01-01 00:00:00', itd.DateTime) as DateEpoch,
                             And {dateRange})/@intervals) = 0
  Order By itd.DateTime";
 
-            return (await UtilizationQueryAsync<Interface.InterfaceUtilization>(nodeInteface.Id, allSql, sampledSql, "itd.DateTime", start, end, pointCount).ConfigureAwait(false)).ToList<DoubleGraphPoint>();
+            return (await UtilizationQueryAsync<Interface.InterfaceUtilization>(iface.Id, allSql, sampledSql, "itd.DateTime", start, end, pointCount).ConfigureAwait(false)).ToList<DoubleGraphPoint>();
         }
 
         public Task<DbConnection> GetConnectionAsync()

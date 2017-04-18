@@ -22,7 +22,7 @@ namespace StackExchange.Opserver
         /// The time this application was spun up.
         /// </summary>
         public static readonly DateTime StartDate = DateTime.UtcNow;
-        
+
         public static void RegisterRoutes(RouteCollection routes)
         {
             routes.IgnoreRoute("{*allaspx}", new { allaspx = @".*\.aspx(/.*)?" });
@@ -102,7 +102,6 @@ namespace StackExchange.Opserver
 
         protected void Application_BeginRequest()
         {
-            Current.LogRequest();
             if (ShouldProfile())
                 MiniProfiler.Start();
         }
@@ -121,7 +120,7 @@ namespace StackExchange.Opserver
                 data.Add("User", Current.User.AccountName);
                 data.Add("Roles", Current.User.RawRoles.ToString());
             }
-            
+
             while (ex != null)
             {
                 foreach (DictionaryEntry de in ex.Data)
@@ -145,7 +144,7 @@ namespace StackExchange.Opserver
                 case SiteSettings.ProfilingModes.LocalOnly:
                     return HttpContext.Current.Request.IsLocal;
                 case SiteSettings.ProfilingModes.AdminOnly:
-                    return Current.User != null && Current.User.IsGlobalAdmin;
+                    return Current.User?.IsGlobalAdmin == true;
                 default:
                     return false;
             }

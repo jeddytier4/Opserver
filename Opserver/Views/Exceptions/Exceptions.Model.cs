@@ -22,8 +22,7 @@ namespace StackExchange.Opserver.Views.Exceptions
         public List<ApplicationGroup> Groups { get; set; }
         public List<Error> Errors { get; set; }
         private int? _shownCount;
-        public int ShownCount { get { return _shownCount ?? (_shownCount = Errors.Sum(e => e.DuplicateCount)).Value; } }
-        
+        public int ShownCount => _shownCount ?? (_shownCount = Errors.Sum(e => e.DuplicateCount)).Value;
         public bool ClearLinkForVisibleOnly { get; set; }
 
         public bool ShowClearLink
@@ -43,10 +42,10 @@ namespace StackExchange.Opserver.Views.Exceptions
             {
                 return ExceptionStores.TotalExceptionCount;
             }
-            var group = Groups.FirstOrDefault(g => g.Name == SelectedGroup);
+            var group = Groups.Find(g => g.Name == SelectedGroup);
             if (group != null && SelectedLog.HasValue())
             {
-                return group.Applications.FirstOrDefault(a => a.Name == SelectedLog)?.ExceptionCount ?? 0;
+                return group.Applications.Find(a => a.Name == SelectedLog)?.ExceptionCount ?? 0;
             }
             return group?.Total ?? 0;
         }

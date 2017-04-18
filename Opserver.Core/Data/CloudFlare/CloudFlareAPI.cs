@@ -56,10 +56,11 @@ namespace StackExchange.Opserver.Data.CloudFlare
                 sourceLineNumber: sourceLineNumber
             );
         }
-        
+
         /// <summary>
         /// Gets a response from the CloudFlare API via GET
         /// </summary>
+        /// <typeparam name="T">The type to deserialize from the result JSON</typeparam>
         /// <param name="path">The API path to call, e.g. zones</param>
         /// <param name="values">Variables to pass into this method</param>
         /// <returns>The CloudFlare API response</returns>
@@ -76,14 +77,16 @@ namespace StackExchange.Opserver.Data.CloudFlare
         /// <summary>
         /// Gets a response from the CloudFlare API via POST
         /// </summary>
+        /// <typeparam name="T">The type to serialize and POST to CloudFlare as JSON</typeparam>
         /// <param name="path">The API path to call, e.g. zones</param>
         /// <param name="values">Variables to pass into this method</param>
         /// <returns>The CloudFlare API response</returns>
         public T Post<T>(string path, NameValueCollection values = null) => Action<T>("POST", path, values);
-        
+
         /// <summary>
         /// Gets a response from the CloudFlare API via DELETE
         /// </summary>
+        /// <typeparam name="T">The type to serialize and delete from CloudFlare</typeparam>
         /// <param name="path">The API path to call, e.g. zones</param>
         /// <param name="values">Variables to pass into this method</param>
         /// <returns>The CloudFlare API response</returns>

@@ -10,7 +10,7 @@ namespace StackExchange.Opserver.Data
     {
         private static readonly object _addLock = new object();
         private static readonly object _pollAllLock = new object();
-        public static HashSet<PollNode> AllPollNodes = new HashSet<PollNode>();
+        public static readonly HashSet<PollNode> AllPollNodes = new HashSet<PollNode>();
 
         private static Thread _globalPollingThread;
         private static volatile bool _shuttingDown;
@@ -23,7 +23,7 @@ namespace StackExchange.Opserver.Data
         {
             StartPolling();
         }
-        
+
         /// <summary>
         /// Adds a node to the global polling list ONLY IF IT IS NEW
         /// If a node with the same unique key was already added, it will not be added again
@@ -53,15 +53,12 @@ namespace StackExchange.Opserver.Data
         public static void StartPolling()
         {
             _startTime = DateTime.UtcNow;
-            if (_globalPollingThread == null)
-            {
-                _globalPollingThread = new Thread(MonitorPollingLoop)
+            _globalPollingThread = _globalPollingThread ?? new Thread(MonitorPollingLoop)
                 {
                     Name = "GlobalPolling",
                     Priority = ThreadPriority.Lowest,
                     IsBackground = true
                 };
-            }
             if (!_globalPollingThread.IsAlive)
                 _globalPollingThread.Start();
         }
@@ -143,7 +140,7 @@ namespace StackExchange.Opserver.Data
                 Thread.Sleep(1000);
             }
         }
-        
+
         public static void PollAllAndForget()
         {
             if (!Monitor.TryEnter(_pollAllLock, 500)) return;
@@ -199,10 +196,10 @@ namespace StackExchange.Opserver.Data
                 return cache?.LastPollSuccessful ?? false;
             }
             // Polling an entire server
-            await node.PollAsync(true);
+            await node.PollAsync(true).ConfigureAwait(false);
             return true;
         }
-        
+
         public static List<PollNode> GetNodes(string type)
         {
             return AllPollNodes.Where(pn => string.Equals(pn.NodeType, type, StringComparison.InvariantCultureIgnoreCase)).ToList();

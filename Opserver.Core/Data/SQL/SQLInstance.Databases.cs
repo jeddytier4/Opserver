@@ -77,12 +77,15 @@ namespace StackExchange.Opserver.Data.SQL
         public LightweightCache<List<MissingIndex>> GetMissingIndexes(string databaseName) =>
             DatabaseFetch<MissingIndex>(databaseName, RefreshInterval);
 
-        public LightweightCache<List<RestoreHistory>> GetRestoreInfo(string databaseName) => 
+        public LightweightCache<List<RestoreHistory>> GetRestoreInfo(string databaseName) =>
             DatabaseFetch<RestoreHistory>(databaseName, RefreshInterval);
 
         public LightweightCache<List<DatabaseColumn>> GetColumnInfo(string databaseName) =>
             DatabaseFetch<DatabaseColumn>(databaseName);
 
+        public LightweightCache<List<TableIndex>> GetIndexInfo(string databaseName) =>
+            DatabaseFetch<TableIndex>(databaseName);
+        
         public LightweightCache<List<DatabaseDataSpace>> GetDataSpaceInfo(string databaseName) =>
             DatabaseFetch<DatabaseDataSpace>(databaseName);
 
@@ -147,19 +150,20 @@ namespace StackExchange.Opserver.Data.SQL
                     }
                 }
             }
+
             public string MonitorStatusReason
             {
                 get
                 {
                     if (IsReadOnly)
-                        return Name + " is read-only";
+                        return Name + " database is read-only";
 
                     switch (State)
                     {
                         case DatabaseStates.Online:
                             return null;
                         default:
-                            return "Database State: " + State.GetDescription();
+                            return Name + " database is " + State.GetDescription();
                     }
                 }
             }
@@ -261,7 +265,7 @@ From sys.databases db
 
             public int DatabaseId { get; internal set; }
             public string Name { get; internal set; }
-            
+
             public char? LastBackupType { get; internal set; }
             public string LastBackupTypeDescription => DatabaseBackup.GetTypeDescription(LastBackupType);
             public DateTime? LastBackupStartDate { get; internal set; }
@@ -341,6 +345,7 @@ Select db.database_id DatabaseId,
                 return FetchSQL;
             }
         }
+
         public class MissingIndex : ISQLVersioned
         {
             public string SchemaName { get; internal set; }
@@ -355,7 +360,7 @@ Select db.database_id DatabaseId,
             public string IncludedColumns { get; internal set; }
             public decimal EstimatedImprovement { get; internal set; }
             public Version MinVersion => SQLServerVersions.SQL2008.SP1;
-            
+
             public string GetFetchSQL(Version v)
             {
                 return @"
@@ -381,7 +386,60 @@ Select db.database_id DatabaseId,
   Order By EstimatedImprovement Desc";
             }
         }
+        
+        public class TableIndex : ISQLVersioned
+        {
+            public string TableName { get; internal set; }
+            public string IndexName { get; internal set; }
+            public DateTime? LastUpdated { get; internal set; }
+            public IndexType Type { get; internal set; }
+            public bool IsUnique { get; internal set; }
+            public bool IsPrimaryKey { get; internal set; }
+            public string ColumnNames { get; internal set; }
+            public string IncludedColumnNames { get; internal set; }
+            public bool HasFilter { get; internal set; }
+            public string FilterDefinition { get; internal set; }
+            public Version MinVersion => SQLServerVersions.SQL2008.SP1;
 
+            public string GetFetchSQL(Version v) => @"
+  Select t.name TableName,
+		i.name IndexName, 
+        Stats_Date(s.object_id, s.stats_id) LastUpdated,   
+		i.type,
+        i.is_unique IsUnique,
+        i.is_primary_key IsPrimaryKey,
+		i.is_disabled IsDisabled,
+		Stuff((Select ', ' + c.name 
+                 From sys.index_columns ic 
+				      Join sys.columns c 
+				        On ic.object_id = c.object_id 
+				       And ic.column_id = c.column_id 
+                Where i.object_id = ic.object_id 
+				  And i.index_id = ic.index_id
+				  and ic.is_included_column = 0
+		     Order By ic.key_ordinal
+                  For Xml Path('')), 1, 2, '') ColumnNames,
+		Stuff((Select ', ' + c.name
+                 From sys.index_columns ic 
+				      Join sys.columns c 
+				        On ic.object_id = c.object_id 
+				       And ic.column_id = c.column_id 
+                Where i.object_id = ic.object_id 
+				  And i.index_id = ic.index_id
+				  and ic.is_included_column = 1
+		     Order By ic.key_ordinal
+                  For Xml Path('')), 1, 2, '') IncludedColumnNames,
+		i.has_filter HasFilter,
+		i.filter_definition FilterDefinition
+  From sys.indexes i 
+       Join sys.tables t
+         On i.object_id = t.object_id 
+       Join sys.stats s 
+         On i.object_id = s.object_id
+        And i.index_id = s.stats_id
+ Where t.is_ms_shipped = 0 
+Order By t.name, i.index_id";
+        }
 
         public class StoredProcedure : ISQLVersioned
         {
@@ -418,6 +476,7 @@ Select p.object_id,
  Where p.is_ms_shipped = 0
  Group By p.object_id, s.name, p.name, p.create_date, p.modify_date, sm.definition";
         }
+
         public class RestoreHistory : ISQLVersioned
         {
             public DateTime RestoreFinishDate { get; internal set; }
@@ -466,13 +525,14 @@ Select r.restore_date RestoreFinishDate,
          On r.backup_set_id = bs.backup_set_id
        Join [msdb].[dbo].[backupmediafamily] bmf 
          On bs.media_set_id = bmf.media_set_id
- Where r.destination_database_name = @databaseName"; 
+ Where r.destination_database_name = @databaseName";
             }
         }
+
         public class DatabaseBackup : ISQLVersioned
         {
             public Version MinVersion => SQLServerVersions.SQL2005.RTM;
-            
+
             public char? Type { get; internal set; }
             public string TypeDescription => GetTypeDescription(Type);
             public DateTime? StartDate { get; internal set; }
@@ -540,7 +600,7 @@ Select Top 100
             public Version MinVersion => SQLServerVersions.SQL2005.RTM;
 
             private string _volumeMountPoint;
-            public string VolumeMountPoint => _volumeMountPoint ?? (_volumeMountPoint = PhysicalName?.Split(StringSplits.Colon).First());
+            public string VolumeMountPoint => _volumeMountPoint ?? (_volumeMountPoint = PhysicalName?.Split(StringSplits.Colon)[0]);
             public int DatabaseId { get; internal set; }
             public string DatabaseName { get; internal set; }
             public int FileId { get; internal set; }
@@ -568,7 +628,7 @@ Select Top 100
             private string _shortPhysicalName;
             public string ShortPhysicalName =>
                     _shortPhysicalName ?? (_shortPhysicalName = _ShortPathRegex.Replace(PhysicalName ?? "", @"C:\Program...MSSQLSERVER\MSSQL\DATA"));
-            
+
             public string GrowthDescription
             {
                 get
@@ -740,6 +800,10 @@ Drop Table #vlfTemp;";
             public TableTypes TableType { get; internal set; }
 
             public string GetFetchSQL(Version v) => @"
+Select object_id, index_id, type Into #indexes From sys.indexes;
+Select object_id, index_id, partition_id Into #parts From sys.partitions;
+Select object_id, index_id, row_count Into #partStats From sys.dm_db_partition_stats;
+
 Select t.object_id Id,
        s.name SchemaName,
        t.name TableName,
@@ -755,9 +819,9 @@ Select t.object_id Id,
   From sys.tables t
        Join sys.schemas s
          On t.schema_id = s.schema_id
-       Join sys.indexes i 
+       Join #indexes i 
          On t.object_id = i.object_id
-       Join sys.partitions p 
+       Join #parts p 
          On i.object_id = p.object_id 
          And i.index_id = p.index_id
        Join (Select container_id,
@@ -766,15 +830,19 @@ Select t.object_id Id,
                From sys.allocation_units
            Group By container_id) a
          On p.partition_id = a.container_id
-       Left Join sys.dm_db_partition_stats ddps
+       Left Join #partStats ddps
          On i.object_id = ddps.object_id
          And i.index_id = ddps.index_id
          And i.type In (0, 1, 5) -- Heap, Clustered, Clustered Columnstore        
  Where t.is_ms_shipped = 0
    And i.object_id > 255
-Group By t.object_id, t.Name, t.create_date, t.modify_date, s.name";
+Group By t.object_id, t.Name, t.create_date, t.modify_date, s.name;
+
+Drop Table #indexes;
+Drop Table #parts;
+Drop Table #partStats;";
         }
-        
+
         public class DatabaseView : ISQLVersioned
         {
             public Version MinVersion => SQLServerVersions.SQL2005.RTM;
@@ -807,9 +875,9 @@ Select v.object_id Id,
         {
             public Version MinVersion => SQLServerVersions.SQL2005.RTM;
 
-            public string Id => Schema + "." + TableName + "." + ColumnName;
+            public string Id => SchemaName + "." + TableName + "." + ColumnName;
 
-            public string Schema { get; internal set; }
+            public string SchemaName { get; internal set; }
             public string TableName { get; internal set; }
             public string ViewName { get; internal set; }
             public int Position { get; internal set; }
@@ -848,7 +916,7 @@ Select v.object_id Id,
                             break;
                         case "decimal":
                         case "numeric":
-                            props.Add($"{DataType}({Scale.ToString()},{Precision.ToString()})");
+                            props.Add($"{DataType}({Scale},{Precision})");
                             break;
                         default:
                             props.Add(DataType);
@@ -861,7 +929,7 @@ Select v.object_id Id,
 
 // For non-SQL later
 //            internal const string FetchSQL = @"
-//Select c.TABLE_SCHEMA [Schema],
+//Select c.TABLE_SCHEMA SchemaName,
 //       c.TABLE_NAME TableName,
 //       c.ORDINAL_POSITION Position,
 //       c.COLUMN_NAME ColumnName,
@@ -910,7 +978,7 @@ Select v.object_id Id,
 ";
 
             internal const string FetchSQL = @"
-Select s.name [Schema],
+Select s.name SchemaName,
        t.name TableName,
        v.name ViewName,
        c.column_id Position,
@@ -954,8 +1022,6 @@ Order By 1, 2, 3";
 
                 return string.Format(FetchSQL, "");
             }
-
         }
-
     }
 }

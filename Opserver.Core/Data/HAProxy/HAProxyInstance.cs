@@ -33,10 +33,12 @@ namespace StackExchange.Opserver.Data.HAProxy
         {
             get { yield return Proxies; }
         }
+
         protected override IEnumerable<MonitorStatus> GetMonitorStatus()
         {
             yield return Proxies.Data?.GetWorstStatus() ?? MonitorStatus.Warning;
         }
+
         protected override string GetMonitorStatusReason()
         {
             if (Proxies.Data == null) return Name + ": No Data";
@@ -103,7 +105,7 @@ namespace StackExchange.Opserver.Data.HAProxy
                     stats.Add(Item.FromLine(line));
                 }
             }
-            var result = stats.GroupBy(s => s.UniqueProxyId).Select(g => new Proxy
+            return stats.GroupBy(s => s.UniqueProxyId).Select(g => new Proxy
             {
                 Instance = this,
                 Name = g.First().ProxyName,
@@ -112,8 +114,6 @@ namespace StackExchange.Opserver.Data.HAProxy
                 Backend = g.FirstOrDefault(s => s.Type == StatusType.Backend) as Backend,
                 PollDate = DateTime.UtcNow
             }).ToList();
-
-            return result;
         }
 
         public override string ToString() => string.Concat(Name, ": ", Url);
@@ -123,8 +123,8 @@ namespace StackExchange.Opserver.Data.HAProxy
             int key = 17;
             unchecked
             {
-                key = key * 23 + Name.GetHashCode();
-                key = key * 23 + Url.GetHashCode();
+                key = (key * 23) + Name.GetHashCode();
+                key = (key * 23) + Url.GetHashCode();
             }
             return key;
         }

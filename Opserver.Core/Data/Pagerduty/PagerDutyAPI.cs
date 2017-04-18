@@ -12,7 +12,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
 {
     public partial class PagerDutyAPI : SinglePollNode<PagerDutyAPI>
     {
-        internal static Options JilOptions = new Options(
+        internal static readonly Options JilOptions = new Options(
             dateFormat: DateTimeFormat.ISO8601,
             unspecifiedDateTimeKindBehavior: UnspecifiedDateTimeKindBehavior.IsUTC,
             excludeNulls: true
@@ -36,6 +36,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
             }
             yield return MonitorStatus.Good;
         }
+
         protected override string GetMonitorStatusReason() => "";
         public string APIKey => Settings.APIKey;
 
@@ -76,19 +77,20 @@ namespace StackExchange.Opserver.Data.PagerDuty
         }
 
         /// <summary>
-        /// Gets content from the PagerDuty API
+        /// Gets content from the PagerDuty API.
         /// </summary>
-        /// <typeparam name="T">Type to return</typeparam>
-        /// <param name="path">The path to return, including any query string</param>
-        /// <param name="getFromJson"></param>
-        /// <param name="httpMethod"></param>
-        /// <param name="data"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">The Type to return (deserialized from the returned JSON).</typeparam>
+        /// <param name="path">The path to return, including any query string.</param>
+        /// <param name="getFromJson">The deserialize function.</param>
+        /// <param name="httpMethod">The HTTP method to use for this API call.</param>
+        /// <param name="data">Data to serialize for the request.</param>
+        /// <param name="extraHeaders">Headers to add to the API request.</param>
+        /// <returns>The deserialized content from the PagerDuty API.</returns>
         public async Task<T> GetFromPagerDutyAsync<T>(string path, Func<string, T> getFromJson, string httpMethod = "GET", object data = null, Dictionary<string,string> extraHeaders = null)
         {
-            var url = "https://api.pagerduty.com/"; //Settings.APIBaseUrl;
-            var fullUri = url + path;
-            
+            const string baseUrl = "https://api.pagerduty.com/";
+            var fullUri = baseUrl + path;
+
             using (MiniProfiler.Current.CustomTiming("http", fullUri, httpMethod))
             {
                 var req = (HttpWebRequest)WebRequest.Create(fullUri);
@@ -105,7 +107,6 @@ namespace StackExchange.Opserver.Data.PagerDuty
 
                 if (httpMethod == "POST" || httpMethod == "PUT")
                 {
-                    
                     if (data != null)
                     {
                         var stringData = JSON.Serialize(data, JilOptions);
@@ -124,8 +125,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
                         if (rs == null) return getFromJson(null);
                         using (var sr = new StreamReader(rs))
                         {
-                            var result = getFromJson(sr.ReadToEnd());
-                            return result;
+                            return getFromJson(sr.ReadToEnd());
                         }
                     }
                 }
@@ -160,7 +160,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
         private Cache<List<PagerDutyPerson>> _allusers;
         public Cache<List<PagerDutyPerson>> AllUsers =>
             _allusers ?? (_allusers = GetPagerDutyCache(60.Minutes(),
-                    () => GetFromPagerDutyAsync("users?include[]=contact_methods", r => JSON.Deserialize<PagerDutyUserResponse>(r.ToString(), JilOptions).Users))
+                    () => GetFromPagerDutyAsync("users?include[]=contact_methods", r => JSON.Deserialize<PagerDutyUserResponse>(r, JilOptions).Users))
             );
     }
 }

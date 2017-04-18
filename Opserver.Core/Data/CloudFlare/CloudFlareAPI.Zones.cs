@@ -9,21 +9,21 @@ namespace StackExchange.Opserver.Data.CloudFlare
     public partial class CloudFlareAPI
     {
         private Cache<List<CloudFlareZone>> _zones;
-        public Cache<List<CloudFlareZone>> Zones => 
+        public Cache<List<CloudFlareZone>> Zones =>
             _zones ?? (_zones = GetCloudFlareCache(5.Minutes(), () => Get<List<CloudFlareZone>>("zones")));
 
         private static readonly NameValueCollection _dnsRecordFetchParams = new NameValueCollection
         {
-            {"per_page", "100"}
+            ["per_page"] = "100"
         };
-        
+
         private Cache<List<CloudFlareDNSRecord>> _dnsRecords;
 
         public Cache<List<CloudFlareDNSRecord>> DNSRecords =>
             _dnsRecords ?? (_dnsRecords = GetCloudFlareCache(5.Minutes(), async () =>
             {
                 var records = new List<CloudFlareDNSRecord>();
-                var data = await Zones.GetData(); // wait on zones to load first...
+                var data = await Zones.GetData().ConfigureAwait(false); // wait on zones to load first...
                 if (data == null) return records;
                 foreach (var z in data)
                 {
@@ -51,10 +51,10 @@ namespace StackExchange.Opserver.Data.CloudFlare
         /// <returns>Root IP Addresses for this host</returns>
         public List<IPAddress> GetIPs(string host)
         {
-            if (DNSRecords.Data == null) 
+            if (DNSRecords.Data == null)
                 return null;
             var records = DNSRecords.Data.Where(r => string.Equals(host, r.Name, StringComparison.InvariantCultureIgnoreCase) && (r.Type == DNSRecordType.A || r.Type == DNSRecordType.AAAA || r.Type == DNSRecordType.CNAME)).ToList();
-            var cNameRecord = records.FirstOrDefault(r => r.Type == DNSRecordType.CNAME);
+            var cNameRecord = records.Find(r => r.Type == DNSRecordType.CNAME);
             return cNameRecord != null ? GetIPs(cNameRecord.Content) : records.Select(r => r.IPAddress).ToList();
         }
     }

@@ -30,11 +30,11 @@ namespace StackExchange.Opserver.Controllers
             return View(vd);
         }
 
+        [Route("issues")]
+        public ActionResult Issues() => View();
+
         [Route("about"), AlsoAllow(Roles.InternalRequest)]
-        public ActionResult About()
-        {
-            return View();
-        }
+        public ActionResult About() => View();
 
         [Route("about/caches"), AlsoAllow(Roles.InternalRequest)]
         public ActionResult AboutCaches(string filter, bool refresh = true)
@@ -68,7 +68,7 @@ namespace StackExchange.Opserver.Controllers
             {
                 sb.AppendFormat("  {0}: {1}\n", k, Request.Headers[k]);
             }
-            
+
             var ps = PollingEngine.GetPollingStatus();
             sb.AppendLine()
               .AppendLine("Polling Info")
@@ -81,7 +81,9 @@ namespace StackExchange.Opserver.Controllers
         {
             Current.LogException(new Exception("Test Exception via GlobalApplication.LogException()"));
 
+#pragma warning disable RCS1079 // Throwing of new NotImplementedException.
             throw new NotImplementedException("I AM IMPLEMENTED, I WAS BORN TO THROW ERRORS!");
+#pragma warning restore RCS1079 // Throwing of new NotImplementedException.
         }
     }
 }

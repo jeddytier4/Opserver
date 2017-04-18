@@ -1,18 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace StackExchange.Opserver
 {
     public class ExceptionsSettings : Settings<ExceptionsSettings>
     {
-        public override bool Enabled => Stores.Any();
+        public override bool Enabled => Stores.Count > 0;
 
         public List<Store> Stores { get; set; } = new List<Store>();
 
         public List<ExceptionsGroup> Groups { get; set; } = new List<ExceptionsGroup>();
 
         public List<string> Applications { get; set; } = new List<string>();
-        
+
+        public List<StackTraceSourceLinkPattern> StackTraceReplacements { get; set; } = new List<StackTraceSourceLinkPattern>();
+
         /// <summary>
         /// How many exceptions before the exceptions are highlighted as a warning in the header, 0 (default) is ignored
         /// </summary>
@@ -75,6 +78,53 @@ namespace StackExchange.Opserver
             /// Connection string for this store's database
             /// </summary>
             public string ConnectionString { get; set; }
+        }
+
+        public class StackTraceSourceLinkPattern : ISettingsCollectionItem
+        {
+            /// <summary>
+            /// The name of the deep link pattern.
+            /// </summary>
+            public string Name { get; set; }
+
+            /// <summary>
+            /// A regular expression for detecting links in stack traces.
+            /// Used in conjuction with <see cref="Replacement"/>.
+            /// </summary>
+            public string Pattern { get; set; }
+
+            /// <summary>
+            /// A replacement pattern for rendering links from a <see cref="Pattern"/> match.
+            /// matches via <see cref="System.Text.RegularExpressions.Regex.Replace(string, string, string)"/>.
+            /// </summary>
+            public string Replacement { get; set; }
+
+            private static readonly Regex DontMatchAnything = new Regex("(?!)");
+
+            private Regex _regex;
+            public Regex RegexPattern()
+            {
+                if (_regex == null)
+                {
+                    if (Pattern.HasValue())
+                    {
+                        try
+                        {
+                            _regex = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.CultureInvariant);
+                        }
+                        catch (Exception ex)
+                        {
+                            Current.LogException($"Unable to parse source link pattern for '{nameof(Name)}': '{Pattern}'", ex);
+                            _regex = DontMatchAnything;
+                        }
+                    }
+                    else
+                    {
+                        _regex = DontMatchAnything;
+                    }
+                }
+                return _regex;
+            }
         }
     }
 }

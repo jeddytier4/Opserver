@@ -39,7 +39,7 @@ namespace StackExchange.Opserver.Controllers
                 };
 
             if (cluster.HasValue())
-                vd.CurrentCluster = vd.Clusters.FirstOrDefault(c => string.Equals(c.Name, cluster, StringComparison.OrdinalIgnoreCase));
+                vd.CurrentCluster = vd.Clusters.Find(c => string.Equals(c.Name, cluster, StringComparison.OrdinalIgnoreCase));
             if (vd.CurrentCluster != null)
                 vd.AvailabilityGroups = vd.CurrentCluster.GetAvailabilityGroups(node, ag).ToList();
 
@@ -150,7 +150,7 @@ namespace StackExchange.Opserver.Controllers
 
             var ms = new MemoryStream(Encoding.UTF8.GetBytes(op.QueryPlan));
 
-            return File(ms, "text/xml", $"QueryPlan-{Math.Abs(handle.GetHashCode()).ToString()}.sqlplan");
+            return File(ms, "text/xml", $"QueryPlan-{Math.Abs(handle.GetHashCode())}.sqlplan");
         }
 
         [Route("sql/active")]
@@ -187,8 +187,8 @@ namespace StackExchange.Opserver.Controllers
             {
                 View = SQLViews.Connections,
                 CurrentInstance = i,
-                Cache = i == null ? null : i.Connections,
-                Connections = i == null ? null : await i.Connections.GetData()
+                Cache = i?.Connections,
+                Connections = i == null ? null : await i.Connections.GetData().ConfigureAwait(false)
             };
             return View(vd);
         }
@@ -258,7 +258,7 @@ namespace StackExchange.Opserver.Controllers
             };
             return View("Databases.Modal.Tables", vd);
         }
-        
+
         private ActionResult NoInstanceRedirect(string node)
         {
             if (Current.IsAjaxRequest)

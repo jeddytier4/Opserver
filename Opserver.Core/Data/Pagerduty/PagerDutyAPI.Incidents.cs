@@ -12,20 +12,20 @@ namespace StackExchange.Opserver.Data.PagerDuty
     {
         private Cache<List<Incident>> _incidents;
 
-        public Cache<List<Incident>> Incidents => 
+        public Cache<List<Incident>> Incidents =>
             _incidents ?? (_incidents = GetPagerDutyCache(10.Minutes(), () =>
             {
                 string since = DateTime.UtcNow.AddDays(-Settings.DaysToCache).ToString("yyyy-MM-dd"),
                        until = DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd");
                 var url = $"incidents?since={since}&until={until}&sort_by=created_at:desc";
                 return GetFromPagerDutyAsync(url, getFromJson: response =>
-                    JSON.Deserialize<IncidentResponse>(response.ToString(), JilOptions)
+                    JSON.Deserialize<IncidentResponse>(response, JilOptions)
                         .Incidents.OrderBy(ic => ic.CreationDate)
                         .ToList()
                     );
             }));
     }
-    
+
     public class IncidentResponse
     {
         [DataMember(Name = "incidents")]
@@ -57,7 +57,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
         [DataMember(Name = "last_status_change_by")]
         public PagerDutyInfoReference LastChangedBy { get; set; }
         [DataMember(Name = "resolved_by_user")]
-        public string ResolvedBy => Logs.Result.FirstOrDefault(r => r.LogType == "resolve_log_entry")?.Agent.Person;
+        public string ResolvedBy => Logs.Result.Find(r => r.LogType == "resolve_log_entry")?.Agent.Person;
         [DataMember(Name = "resolve_reason")]
         public string ResolveReason { get; set; }
 
@@ -74,7 +74,6 @@ namespace StackExchange.Opserver.Data.PagerDuty
                         AckPerson = i.Agent.Person,
                         AckTime = i.CreationTime
                     });
-
                 }
                 return a;
             }
@@ -90,7 +89,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
         public PagerDutyService AffectedService { get; set; }
         [DataMember(Name = "number_of_escalations")]
         public int? NumberOfEscalations { get; set; }
-        
+
         public Task<List<LogEntry>> Logs => PagerDutyAPI.Instance.GetIncidentEntriesAsync(Id);
 
         public MonitorStatus MonitorStatus
@@ -110,7 +109,7 @@ namespace StackExchange.Opserver.Data.PagerDuty
                 }
             }
         }
-        
+
         public string MonitorStatusReason => "Status is " + Status.GetDescription();
     }
 

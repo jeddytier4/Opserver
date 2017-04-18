@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace StackExchange.Opserver
 {
     public class RedisSettings : Settings<RedisSettings>
     {
-        public override bool Enabled => Servers.Any();
+        public override bool Enabled => Servers.Count > 0;
 
         public List<Server> Servers { get; set; } = new List<Server>();
 
@@ -51,9 +50,15 @@ namespace StackExchange.Opserver
             public string Password { get; set; }
 
             /// <summary>
+            /// Specify if ssl should be used. Defaults to false.
+            /// </summary>
+            public bool UseSSL { get; set; } = false;
+
+            /// <summary>
             /// Regular expressions collection to crawl keys against, to break out Redis DB usage
             /// </summary>
             public Dictionary<string, string> AnalysisRegexes { get; set; } = new Dictionary<string, string>();
+            
         }
     }
 }

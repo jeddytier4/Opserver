@@ -22,7 +22,7 @@ namespace StackExchange.Opserver.Data.SQL
         protected string ConnectionString { get; set; }
         public Version Version { get; internal set; } = new Version(); // default to 0.0
         protected SQLSettings.Instance Settings { get; }
-        
+
         protected static readonly ConcurrentDictionary<Tuple<string, Version>, string> QueryLookup =
             new ConcurrentDictionary<Tuple<string, Version>, string>();
 
@@ -48,7 +48,7 @@ namespace StackExchange.Opserver.Data.SQL
 
         public static SQLInstance Get(string name)
         {
-            return SQLModule.AllInstances.FirstOrDefault(i => string.Equals(i.Name, name, StringComparison.InvariantCultureIgnoreCase));
+            return SQLModule.AllInstances.Find(i => string.Equals(i.Name, name, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public override string NodeType => "SQL";
@@ -91,6 +91,7 @@ namespace StackExchange.Opserver.Data.SQL
             if (Databases.Data != null)
                 yield return Databases.Data.GetWorstStatus();
         }
+
         protected override string GetMonitorStatusReason()
         {
             return Databases.Data?.GetReasonSummary();
@@ -101,19 +102,20 @@ namespace StackExchange.Opserver.Data.SQL
         /// <summary>
         /// Gets a connection for this server - YOU NEED TO DISPOSE OF IT
         /// </summary>
-        protected Task<DbConnection> GetConnectionAsync(int timeout = 5000) => Connection.GetOpenAsync(ConnectionString, connectionTimeout: timeout);
+        /// <param name="timeoutMs">Maximum milliseconds to wait when opening the connection.</param>
+        protected Task<DbConnection> GetConnectionAsync(int timeoutMs = 5000) => Connection.GetOpenAsync(ConnectionString, connectionTimeoutMs: timeoutMs);
 
         /// <summary>
         /// Gets a connection for this server - YOU NEED TO DISPOSE OF IT
         /// TODO: Remove with async views in MVC Core
         /// </summary>
-        protected DbConnection GetConnection(int timeout = 5000) => Connection.GetOpen(ConnectionString, connectionTimeout: timeout);
+        /// <param name="timeoutMs">Maximum milliseconds to wait when opening the connection.</param>
+        protected DbConnection GetConnection(int timeoutMs = 5000) => Connection.GetOpen(ConnectionString, connectionTimeoutMs: timeoutMs);
 
         private string GetCacheKey(string itemName) { return $"SQL-Instance-{Name}-{itemName}"; }
 
         public Cache<List<T>> SqlCacheList<T>(
             TimeSpan cacheDuration,
-            bool affectsStatus = true,
             [CallerMemberName] string memberName = "",
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
@@ -146,7 +148,7 @@ namespace StackExchange.Opserver.Data.SQL
                 logExceptions: true
             );
         }
-        
+
         protected Cache<T> GetSqlCache<T>(
             string opName,
             Func<DbConnection, Task<T>> get,

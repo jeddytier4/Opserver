@@ -21,7 +21,7 @@ namespace StackExchange.Opserver.Data.HAProxy
         public Backend Backend { get; internal set; }
         public DateTime PollDate { get; internal set; }
 
-        private List<Item> _allStats; 
+        private List<Item> _allStats;
         public List<Item> AllStats
         {
             get
@@ -38,10 +38,10 @@ namespace StackExchange.Opserver.Data.HAProxy
             }
         }
 
-        public bool HasContent => Frontend != null || Backend != null || (Servers != null && Servers.Count > 0);
+        public bool HasContent => Frontend != null || Backend != null || Servers?.Count > 0;
 
         public bool HasFrontend => Frontend != null;
-        public bool HasServers => Servers != null && Servers.Count > 0;
+        public bool HasServers => Servers?.Count > 0;
         public bool HasBackend => Backend != null;
 
         public MonitorStatus MonitorStatus
@@ -53,6 +53,7 @@ namespace StackExchange.Opserver.Data.HAProxy
                 return Servers.GetWorstStatus();
             }
         }
+
         public string MonitorStatusReason
         {
             get
@@ -82,6 +83,7 @@ namespace StackExchange.Opserver.Data.HAProxy
         {
             get { return HasServers && Servers.Any(s => s.LimitSessions > 0 || s.LimitNewSessionPerSecond > 0); }
         }
+
         public bool ShowWarnings => HasServers;
 
         public bool ShowServers => HasServers;

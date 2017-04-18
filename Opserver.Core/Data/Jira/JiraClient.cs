@@ -56,7 +56,6 @@ namespace StackExchange.Opserver.Data.Jira
 
         public async Task<JiraCreateIssueResponse> CreateIssueAsync(JiraAction action, Error error, string accountName)
         {
-
             var url = GetUrl(action);
             var userName = GetUsername(action);
             var password = GetPassword(action);
@@ -70,21 +69,21 @@ namespace StackExchange.Opserver.Data.Jira
 
             var fields = new Dictionary<string, object>
             {
-                {"project", new {key = projectKey}},
-                {"issuetype", new {name = action.Name}},
-                {"summary", error.Message.CleanCRLF().TruncateWithEllipsis(255)},
-                {"description", RenderDescription(error, accountName)}
+                ["project"] = new { key = projectKey },
+                ["issuetype"] = new { name = action.Name },
+                ["summary"] = error.Message.CleanCRLF().TruncateWithEllipsis(255),
+                ["description"] = RenderDescription(error, accountName)
             };
             var components = action.GetComponentsForApplication(error.ApplicationName);
 
-            if (components != null && components.Count > 0)
+            if (components?.Count > 0)
                 fields.Add("components", components);
 
             var labels = action.Labels.IsNullOrEmpty()
                 ? null
                 : action.Labels.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
-            if (labels != null && labels.Length > 0)
+            if (labels?.Length > 0)
                 fields.Add("labels", labels);
 
             var payload = new { fields };
@@ -101,7 +100,7 @@ namespace StackExchange.Opserver.Data.Jira
             {
                 await CommentAsync(action, result, commentBody).ConfigureAwait(false);
             }
-            
+
             result.Host = GetHost(action);
             return result;
         }
@@ -128,7 +127,6 @@ namespace StackExchange.Opserver.Data.Jira
             var response = await client.PostAsync<string, object>(resource, payload).ConfigureAwait(false);
             return response;
         }
-
 
         private string GetPassword(JiraAction action)
         {
@@ -255,9 +253,9 @@ namespace StackExchange.Opserver.Data.Jira
         {
             if (Username.IsNullOrEmpty())
                 return string.Empty;
-            
+
             var enc = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{Username}:{Password}"));
-            return $"{"Basic"} {enc}";
+            return $"Basic {enc}";
         }
 
         public async Task<TResponse> GetAsync<TResponse>(string resource)
@@ -285,19 +283,11 @@ namespace StackExchange.Opserver.Data.Jira
             if (authz.HasValue())
                 client.Headers.Add(HttpRequestHeader.Authorization, authz);
 
-
             var json = JSON.Serialize(data);
             byte[] dataBytes = Encoding.UTF8.GetBytes(json);
             var uri = GetUriForResource(resource);
             var responseBytes = new byte[0];
-            try
-            {
-                responseBytes = await client.UploadDataTaskAsync(uri, "POST", dataBytes).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            await client.UploadDataTaskAsync(uri, "POST", dataBytes).ConfigureAwait(false);
 
             string response = Encoding.UTF8.GetString(responseBytes);
             if (typeof(TResponse) == typeof(string))

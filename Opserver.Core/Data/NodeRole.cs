@@ -9,9 +9,9 @@ namespace StackExchange.Opserver.Data
         public string Service { get; set; }
         public string Description { get; set; }
         public bool Active { get; set; }
-        
+
         internal static ConcurrentBag<INodeRoleProvider> Providers { get; } = new ConcurrentBag<INodeRoleProvider>();
-        
+
         public static IEnumerable<NodeRole> Get(string node)
         {
             foreach (var p in Providers)
@@ -30,7 +30,7 @@ namespace StackExchange.Opserver.Data
             {
                 tasks.Add(p.EnableAsync(node));
             }
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
             return tasks.TrueForAll(b => b.Result);
         }
 
@@ -41,7 +41,7 @@ namespace StackExchange.Opserver.Data
             {
                 tasks.Add(p.DisableAsync(node));
             }
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
             return tasks.TrueForAll(b => b.Result);
         }
     }

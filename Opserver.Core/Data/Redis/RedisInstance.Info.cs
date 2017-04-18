@@ -20,6 +20,7 @@ namespace StackExchange.Opserver.Data.Redis
             throw new InvalidOperationException(sb.ToStringRecycle());
         }
     }
+
     public partial class RedisInstance
     {
         //Specially caching this since it's accessed so often
@@ -47,9 +48,11 @@ namespace StackExchange.Opserver.Data.Redis
             {
                 var lastRole = Replication?.RedisInstanceRole;
                 // If we think we're a master and the last poll failed - look to other nodes for info
-                if (!Info.LastPollSuccessful && lastRole == RedisInfo.RedisInstanceRole.Master &&
-                    RedisModule.Instances.Any(r => r.SlaveInstances.Any(s => s == this)))
+                if (!Info.LastPollSuccessful && lastRole == RedisInfo.RedisInstanceRole.Master
+                    && RedisModule.Instances.Any(r => r.SlaveInstances.Any(s => s == this)))
+                {
                     return RedisInfo.RedisInstanceRole.Slave;
+                }
                 return lastRole ?? RedisInfo.RedisInstanceRole.Unknown;
             }
         }
@@ -87,10 +90,10 @@ namespace StackExchange.Opserver.Data.Redis
             }
         }
 
-        public RedisInstance Master
-        {
-            get { return Replication?.MasterHost.HasValue() == true ? Get(Replication.MasterHost, Replication.MasterPort) : RedisModule.Instances.FirstOrDefault(i => i.SlaveInstances.Contains(this)); }
-        }
+        public RedisInstance Master =>
+            Replication?.MasterHost.HasValue() == true
+            ? Get(Replication.MasterHost, Replication.MasterPort)
+            : RedisModule.Instances.Find(i => i.SlaveInstances.Contains(this));
 
         public int SlaveCount => Replication?.ConnectedSlaves ?? 0;
 

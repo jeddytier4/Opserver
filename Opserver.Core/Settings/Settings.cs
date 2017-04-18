@@ -17,6 +17,7 @@ namespace StackExchange.Opserver
         /// <summary>
         /// Updates this settings object, return true if there was an actual change
         /// </summary>
+        /// <param name="newSettings">The new settings object (freshly loaded)</param>
         public virtual bool UpdateSettings(T newSettings)
         {
             //Current.LogException("Settings updated! " + GetType(), null);
@@ -29,17 +30,16 @@ namespace StackExchange.Opserver
             bool changed = false;
             try
             {
-                var toCopy = Properties;
-                foreach (var prop in toCopy)
+                foreach (var prop in Properties)
                 {
                     if (!prop.CanWrite) continue;
 
                     var current = prop.GetValue(this);
                     var newSetting = prop.GetValue(newSettings);
-                    
+
                     // observables are meant to be updated at the member level and need specific love
-                    if (prop.PropertyType.IsGenericType &&
-                        prop.PropertyType.GetGenericTypeDefinition() == typeof (ObservableCollection<>))
+                    if (prop.PropertyType.IsGenericType
+                        && prop.PropertyType.GetGenericTypeDefinition() == typeof(ObservableCollection<>))
                     {
                         // handle collections!
                         // TODO: Decide on how collections (and subcollections) are handled
@@ -66,8 +66,11 @@ namespace StackExchange.Opserver
                 Current.LogException("Error updating settings for " + typeof(T).Name, e);
             }
 
-            if (changed) 
+            if (changed)
+            {
                 TriggerChanged();
+            }
+
             return changed;
         }
     }

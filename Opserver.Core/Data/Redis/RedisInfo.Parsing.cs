@@ -54,8 +54,7 @@ namespace StackExchange.Opserver.Data.Redis
                     else
                     {
                         currentSection = new RedisInfoSection {Name = sectionName, IsUnrecognized = true};
-                        if (info.UnrecognizedSections == null)
-                            info.UnrecognizedSections = new List<RedisInfoSection>();
+                        info.UnrecognizedSections = info.UnrecognizedSections ?? new List<RedisInfoSection>();
                         info.UnrecognizedSections.Add(currentSection);
                     }
                     continue;
@@ -75,9 +74,9 @@ namespace StackExchange.Opserver.Data.Redis
                 string key = splits[0], value = splits[1];
                 currentSection.AddLine(key, value);
 
-                if (currentSection.IsUnrecognized) 
+                if (currentSection.IsUnrecognized)
                     continue;
-                
+
                 PropertyInfo propertyInfo;
                 var prop = _propertyMappings[currentSection.GetType()].TryGetValue(key, out propertyInfo) ? propertyInfo : null;
                 if (prop == null)
@@ -111,13 +110,18 @@ namespace StackExchange.Opserver.Data.Redis
             public bool IsGlobal { get; internal set; }
             public bool IsUnrecognized { get; internal set; }
             protected string _name { get; set; }
-            public virtual string Name { get { return _name ?? Regex.Replace(GetType().Name, "Info$", ""); } internal set { _name = value; } }
+            public virtual string Name
+            {
+                get { return _name ?? Regex.Replace(GetType().Name, "Info$", ""); }
+                internal set { _name = value; }
+            }
 
             public virtual void MapUnrecognizedLine(string infoLine)
             {
                 var splits = infoLine.Split(StringSplits.Colon, 2);
                 if (splits.Length == 2) MapUnrecognizedLine(splits[0], splits[1]);
             }
+
             public virtual void MapUnrecognizedLine(string key, string value) { }
 
             public RedisInfoSection()
@@ -155,10 +159,10 @@ namespace StackExchange.Opserver.Data.Redis
                     "tcp_port",
                     "master_port"
                 };
-            
+
             private static string GetInfoValue(string label, string value)
             {
-                long l;              
+                long l;
 
                 switch (label)
                 {
@@ -166,7 +170,7 @@ namespace StackExchange.Opserver.Data.Redis
                         if (long.TryParse(value, out l))
                         {
                             var ts = TimeSpan.FromSeconds(l);
-                            return $"{value} ({(int) ts.TotalDays}d {ts.Hours.ToString()}h {ts.Minutes.ToString()}m {ts.Seconds.ToString()}s)";
+                            return $"{value} ({(int) ts.TotalDays}d {ts.Hours}h {ts.Minutes}m {ts.Seconds}s)";
                         }
                         break;
                     case "last_save_time":
@@ -185,7 +189,7 @@ namespace StackExchange.Opserver.Data.Redis
                     case "used_memory_rss":
                         if (long.TryParse(value, out l))
                         {
-                            return $"{l.ToString()} ({l.ToSize(precision: 1)})";
+                            return $"{l} ({l.ToSize(precision: 1)})";
                         }
                         break;
                     default:

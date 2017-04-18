@@ -31,7 +31,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var node = DashboardModule.GetNodeById(id);
             if (node == null) return ContentNotFound();
-            var points = await node.GetCPUUtilization(SparkStart, null, SparkPoints);
+            var points = await node.GetCPUUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             return points.Count == 0
                 ? EmptySparkSVG()
@@ -56,7 +56,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var node = DashboardModule.GetNodeById(id);
             if (node?.TotalMemory == null) return ContentNotFound($"Could not determine total memory for '{id}'");
-            var points = await node.GetMemoryUtilization(SparkStart, null, SparkPoints);
+            var points = await node.GetMemoryUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             return points.Count == 0
                 ? EmptySparkSVG()
@@ -81,7 +81,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var node = DashboardModule.GetNodeById(id);
             if (node == null) return ContentNotFound();
-            var points = await node.GetNetworkUtilization(SparkStart, null, SparkPoints);
+            var points = await node.GetNetworkUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             return points.Count == 0
                 ? EmptySparkSVG()
@@ -106,7 +106,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var iface = DashboardModule.GetNodeById(id)?.GetInterface(iid);
             if (iface == null) return ContentNotFound();
-            var points = await iface.GetUtilization(SparkStart, null, SparkPoints);
+            var points = await iface.GetUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             if (points.Count == 0) return EmptySparkSVG();
 
@@ -123,7 +123,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var node = DashboardModule.GetNodeById(id);
             if (node == null) return ContentNotFound();
-            var points = await node.GetVolumePerformanceUtilization(SparkStart, null, SparkPoints);
+            var points = await node.GetVolumePerformanceUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             return points.Count == 0
                 ? EmptySparkSVG()
@@ -137,7 +137,7 @@ namespace StackExchange.Opserver.Controllers
             MiniProfiler.Stop(true);
             var volume = DashboardModule.GetNodeById(id)?.GetVolume(iid);
             if (volume == null) return ContentNotFound();
-            var points = await volume.GetPerformanceUtilization(SparkStart, null, SparkPoints);
+            var points = await volume.GetPerformanceUtilization(SparkStart, null, SparkPoints).ConfigureAwait(false);
 
             if (points.Count == 0) return EmptySparkSVG();
 
@@ -162,7 +162,7 @@ namespace StackExchange.Opserver.Controllers
             return SparkSVG(points, 100, p => p.ProcessUtilization, start);
         }
 
-        public static async Task<ActionResult> SparkSvgAll<T>(Func<Node, Task<List<T>>> getPoints, Func<Node, List<T>, long> getMax, Func<T, double> getVal, DateTime? start = null) where T : IGraphPoint
+        public static async Task<ActionResult> SparkSvgAll<T>(Func<Node, Task<List<T>>> getPoints, Func<Node, List<T>, long> getMax, Func<T, double> getVal) where T : IGraphPoint
         {
             MiniProfiler.Stop(true);
             const int width = SparkPoints;
@@ -180,7 +180,7 @@ namespace StackExchange.Opserver.Controllers
                 .AppendFormat("\t\tline {{ stroke:{0}; stroke-width:1 }}\n", AxisColor)
                 .AppendFormat("\t\tpath {{ fill:{0}; stroke:none; }}\n", Color)
                 .AppendLine("\t</style>");
-            
+
             var pointsLookup = new ConcurrentDictionary<string, List<T>>();
             var maxLookup = new ConcurrentDictionary<string, long>();
             var lookups = new List<Task>(nodes.Count);
@@ -195,7 +195,7 @@ namespace StackExchange.Opserver.Controllers
                     }
                 }));
             }
-            await Task.WhenAll(lookups);
+            await Task.WhenAll(lookups).ConfigureAwait(false);
 
             int currentYTop = 0;
             foreach (var pl in pointsLookup)
@@ -204,7 +204,7 @@ namespace StackExchange.Opserver.Controllers
                   .AppendFormat("\t<g transform=\"translate(0, {0})\">\n", currentYTop)
                   .AppendFormat("\t\t<line x1=\"0\" y1=\"{0}\" x2=\"{1}\" y2=\"{0}\" />\n", SparkHeight.ToString(), width.ToString())
                   .AppendFormat("\t\t<path d=\"M0 {0} L", SparkHeight);
-                
+
                 var first = true;
                 long divisor = maxLookup[pl.Key] / SparkHeight;
                 foreach (var p in pl.Value)
@@ -220,7 +220,7 @@ namespace StackExchange.Opserver.Controllers
                         first = false;
                     }
                     sb.Append(pos.ToString("f1", CultureInfo.InvariantCulture)).Append(" ")
-                      .Append((SparkHeight - getVal(p) / divisor).ToString("f1", CultureInfo.InvariantCulture)).Append(" ");
+                      .Append((SparkHeight - (getVal(p) / divisor)).ToString("f1", CultureInfo.InvariantCulture)).Append(" ");
                 }
                 sb.Append(width)
                   .Append(" ")
@@ -262,7 +262,7 @@ namespace StackExchange.Opserver.Controllers
                     first = false;
                 }
                 sb.Append(pos.ToString("f1", CultureInfo.InvariantCulture)).Append(" ")
-                  .Append((height - getVal(p) / divisor).ToString("f1", CultureInfo.InvariantCulture)).Append(" ");
+                  .Append((height - (getVal(p) / divisor)).ToString("f1", CultureInfo.InvariantCulture)).Append(" ");
             }
             sb.Append(width)
               .Append(" ")

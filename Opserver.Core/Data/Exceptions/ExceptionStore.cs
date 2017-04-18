@@ -35,7 +35,7 @@ namespace StackExchange.Opserver.Data.Exceptions
 
         protected override IEnumerable<MonitorStatus> GetMonitorStatus() { yield break; }
         protected override string GetMonitorStatusReason() { return null; }
-        
+
         public ExceptionStore(ExceptionsSettings.Store settings) : base(settings.Name)
         {
             Settings = settings;
@@ -83,7 +83,7 @@ Select e.Id, e.GUID, e.ApplicationName, e.MachineName, e.CreationDate, e.Type, e
 
         public async Task<List<Error>> GetErrorSummary(int maxPerApp, string group = null, string app = null)
         {
-            var errors = await ErrorSummary.GetData();
+            var errors = await ErrorSummary.GetData().ConfigureAwait(false);
             if (errors == null) return new List<Error>();
             // specific application - this is most specific
             if (app.HasValue())
@@ -99,7 +99,6 @@ Select e.Id, e.GUID, e.ApplicationName, e.MachineName, e.CreationDate, e.Type, e
                              .Where(g => apps.Contains(g.Key))
                              .SelectMany(e => e.Take(maxPerApp))
                              .ToList();
-
             }
             // all apps, 1000
             if (maxPerApp == PerAppSummaryCount)
@@ -113,8 +112,10 @@ Select e.Id, e.GUID, e.ApplicationName, e.MachineName, e.CreationDate, e.Type, e
         }
 
         /// <summary>
-        /// Get all current errors, possibly per application
+        /// Get all current errors, possibly per application.
         /// </summary>
+        /// <param name="maxPerApp">Count of exceptions to fetch per application.</param>
+        /// <param name="apps">(Optional) The list of applications to fetch exceptions for.</param>
         /// <remarks>This does not populate Detail, it's comparatively large and unused in list views</remarks>
         public Task<List<Error>> GetAllErrorsAsync(int maxPerApp, IEnumerable<string> apps = null)
         {
@@ -168,7 +169,7 @@ Update Exceptions
 
         public Task<int> DeleteSimilarErrorsAsync(Error error)
         {
-            return ExecTaskAsync($"{nameof(DeleteSimilarErrorsAsync)}('{error.GUID.ToString()}') (app: {error.ApplicationName}) for {Name}", @"
+            return ExecTaskAsync($"{nameof(DeleteSimilarErrorsAsync)}('{error.GUID}') (app: {error.ApplicationName}) for {Name}", @"
 Update Exceptions 
    Set DeletionDate = GETUTCDATE() 
  Where ApplicationName = @ApplicationName
@@ -179,14 +180,14 @@ Update Exceptions
 
         public Task<int> DeleteErrorsAsync(List<Guid> ids)
         {
-            return ExecTaskAsync($"{nameof(DeleteErrorsAsync)}({ids.Count.ToString()} Guids) for {Name}", @"
+            return ExecTaskAsync($"{nameof(DeleteErrorsAsync)}({ids.Count} Guids) for {Name}", @"
 Update Exceptions 
    Set DeletionDate = GETUTCDATE() 
  Where DeletionDate Is Null 
    And IsProtected = 0 
    And GUID In @ids", new { ids });
         }
-        
+
         public async Task<Error> GetErrorAsync(Guid guid)
         {
             try
@@ -219,7 +220,7 @@ Update Exceptions
 
         public async Task<bool> ProtectErrorAsync(Guid guid)
         {
-              return await ExecTaskAsync($"{nameof(ProtectErrorAsync)}() (guid: {guid.ToString()}) for {Name}", @"
+              return await ExecTaskAsync($"{nameof(ProtectErrorAsync)}() (guid: {guid}) for {Name}", @"
 Update Exceptions 
    Set IsProtected = 1, DeletionDate = Null
  Where GUID = @guid", new {guid}).ConfigureAwait(false) > 0;
@@ -227,7 +228,7 @@ Update Exceptions
 
         public async Task<bool> DeleteErrorAsync(Guid guid)
         {
-            return await ExecTaskAsync($"{nameof(DeleteErrorAsync)}() (guid: {guid.ToString()}) for {Name}", @"
+            return await ExecTaskAsync($"{nameof(DeleteErrorAsync)}() (guid: {guid}) for {Name}", @"
 Update Exceptions 
    Set DeletionDate = GETUTCDATE() 
  Where GUID = @guid 

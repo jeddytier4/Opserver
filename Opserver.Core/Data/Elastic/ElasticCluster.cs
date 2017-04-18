@@ -49,6 +49,7 @@ namespace StackExchange.Opserver.Data.Elastic
 
             yield return DataPollers.GetWorstStatus();
         }
+
         protected override string GetMonitorStatusReason()
         {
             var reason = HealthStatus.Data?.Indexes?.Values.GetReasonSummary();
@@ -81,7 +82,6 @@ namespace StackExchange.Opserver.Data.Elastic
         //                                        : ConfigSettings.DownRefreshIntervalSeconds;
         //}
 
-
         private Cache<T> GetElasticCache<T>(
             Func<Task<T>> get,
             [CallerMemberName] string memberName = "",
@@ -102,12 +102,17 @@ namespace StackExchange.Opserver.Data.Elastic
         public async Task<T> GetAsync<T>(string path) where T : class
         {
             using (MiniProfiler.Current.CustomTiming("elastic", path))
+            {
                 foreach (var n in KnownNodes)
                 {
                     var result = await n.GetAsync<T>(path).ConfigureAwait(false);
                     if (result != null)
+                    {
                         return result;
+                    }
                 }
+            }
+
             return null;
         }
 

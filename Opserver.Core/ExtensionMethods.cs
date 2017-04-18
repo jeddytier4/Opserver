@@ -21,65 +21,80 @@ namespace StackExchange.Opserver
     /// </summary>
     public static partial class ExtensionMethods
     {
-        public static string ExceptionLogPrefix = "ErrorLog-";
+        public static readonly string ExceptionLogPrefix = "ErrorLog-";
 
         /// <summary>
         /// Answers true if this String is either null or empty.
         /// </summary>
+        /// <param name="s">The string to check</param>
         /// <remarks>I'm so tired of typing String.IsNullOrEmpty(s)</remarks>
         public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
 
         /// <summary>
         /// Answers true if this String is neither null or empty.
         /// </summary>
+        /// <param name="s">The string to check</param>
         /// <remarks>I'm also tired of typing !String.IsNullOrEmpty(s)</remarks>
         public static bool HasValue(this string s) => !string.IsNullOrEmpty(s);
 
         /// <summary>
-        /// Returns the toReturn parameter when this string is null/empty.
+        /// Returns <paramref name="toReturn"/> when this string is null/empty.
         /// </summary>
+        /// <param name="s">The string to check</param>
+        /// <param name="toReturn">The value to return if the strng is null or empty</param>
         public static string IsNullOrEmptyReturn(this string s, string toReturn) => s.HasValue() ? s : toReturn;
 
         /// <summary>
-        /// Returns null for an empty string. For use in places like attributes that need not render with no content
+        /// Returns <c>null</c> for an empty string. For use in places like attributes that need not render with no content
         /// </summary>
+        /// <param name="s">The string to check</param>
         public static string Nullify(this string s) => s.IsNullOrEmptyReturn(null);
 
         /// <summary>
-        /// If this string ends in "toTrim", this will trim it once off the end
+        /// If this string ends in <paramref name="toTrim"/>, this will trim it once off the end
         /// </summary>
+        /// <param name="s">The string to trim</param>
+        /// <param name="toTrim">The string to trim off the end</param>
         public static string TrimEnd(this string s, string toTrim) =>
             s == null || toTrim == null || !s.EndsWith(toTrim)
                 ? s
                 : s.Substring(0, s.Length - toTrim.Length);
 
-
         /// <summary>
         /// returns Url Encoded string
         /// </summary>
+        /// <param name="s">The string to encode, to put in URLs</param>
         public static string UrlEncode(this string s) => s.HasValue() ? WebUtility.UrlEncode(s) : s;
 
         /// <summary>
         /// returns Html Encoded string
         /// </summary>
+        /// <param name="s">The string to encode, to put in HTML</param>
         public static string HtmlEncode(this string s) => s.HasValue() ? WebUtility.HtmlEncode(s) : s;
 
         /// <summary>
         /// Gets a readable type description for dashboards, e.g. "Dictionary&lt;string,string&gt;"
         /// </summary>
-        public static string ReadableTypeDescription(this Type t) =>
-            t.IsGenericType
-                ? $"{t.Name.Split(StringSplits.Tilde)[0]}<{string.Join(",", t.GetGenericArguments().Select(a => a.Name))}>"
-                : t.Name;
-        
+        /// <param name="type">The type to render a description for</param>
+        public static string ReadableTypeDescription(this Type type) =>
+            type.IsGenericType
+                ? $"{type.Name.Split(StringSplits.Tilde)[0]}<{string.Join(",", type.GetGenericArguments().Select(a => a.Name))}>"
+                : type.Name;
+
         /// <summary>
         /// A brain dead pluralizer. 1.Pluralize("time") => "1 time"
         /// </summary>
+        /// <param name="count">The amount to pluralize</param>
+        /// <param name="name">The singular form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="includeNumber">Whether to include the number before the text</param>
         public static string Pluralize(this int count, string name, bool includeNumber = true) => Pluralize((long)count, name, includeNumber);
 
         /// <summary>
         /// A brain dead pluralizer. 1.Pluralize("time") => "1 time"
         /// </summary>
+        /// <param name="count">The amount to pluralize</param>
+        /// <param name="name">The singular form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="includeNumber">Whether to include the number before the text</param>
         public static string Pluralize(this long count, string name, bool includeNumber = true)
         {
             var numString = includeNumber ? count.ToComma() + " " : null;
@@ -93,6 +108,10 @@ namespace StackExchange.Opserver
         /// <summary>
         /// A plurailizer that accepts the count, single and plural variants of the text
         /// </summary>
+        /// <param name="count">The amount to pluralize</param>
+        /// <param name="single">The singular form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="plural">The plural form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="includeNumber">Whether to include the number before the text</param>
         public static string Pluralize(this int count, string single, string plural, bool includeNumber = true) =>
             includeNumber
                 ? count.ToComma() + " " + (count == 1 ? single : plural)
@@ -101,25 +120,29 @@ namespace StackExchange.Opserver
         /// <summary>
         /// A plurailizer that accepts the count, single and plural variants of the text
         /// </summary>
+        /// <param name="count">The amount to pluralize</param>
+        /// <param name="single">The singular form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="plural">The plural form to pluralize (based on the <paramref name="count"/>)</param>
+        /// <param name="includeNumber">Whether to include the number before the text</param>
         public static string Pluralize(this long count, string single, string plural, bool includeNumber = true) =>
             includeNumber
                 ? count.ToComma() + " " + (count == 1 ? single : plural)
                 : count == 1 ? single : plural;
 
         /// <summary>
-        /// Returns the pluralized version of 'noun' when required by 'number'.
+        /// Truncates a string to <paramref name="maxLength"/>.
         /// </summary>
-        public static string Pluralize(this string noun, int number, string pluralForm = null) =>
-            number == 1
-                ? noun
-                : pluralForm.IsNullOrEmptyReturn((noun ?? "") + "s");
-
-        /// <summary>
-        /// force string to be maxlen or smaller
-        /// </summary>
+        /// <param name="s">The string to truncate</param>
+        /// <param name="maxLength">The length to truncate to</param>
         public static string Truncate(this string s, int maxLength) =>
             s.IsNullOrEmpty() ? s : (s.Length > maxLength ? s.Remove(maxLength) : s);
 
+        /// <summary>
+        /// Truncates a string to <paramref name="maxLength"/>, addinge an ellipsis on the end in truncated.
+        /// </summary>
+        /// <param name="s">The string to truncate</param>
+        /// <param name="maxLength">The length to truncate to</param>
+        /// <returns></returns>
         public static string TruncateWithEllipsis(this string s, int maxLength) =>
             s.IsNullOrEmpty() || s.Length <= maxLength ? s : Truncate(s, Math.Max(maxLength, 3) - 3) + "…";
 
@@ -128,6 +151,11 @@ namespace StackExchange.Opserver
                 ? s
                 : s.Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ");
 
+        /// <summary>
+        /// Normalizes a value for cache, by lower-casing it.
+        /// </summary>
+        /// <param name="s">The value to normalize</param>
+        /// <returns>The normalized value</returns>
         public static string NormalizeForCache(this string s) => s?.ToLower();
 
         public static string NormalizeHostOrFQDN(this string s, bool defaultToHttps = false)
@@ -178,6 +206,8 @@ namespace StackExchange.Opserver
         /// <summary>
         /// Returns a unix Epoch time given a Date
         /// </summary>
+        /// <param name="dt">The time to get an epoch value for</param>
+        /// <param name="toMilliseconds">Whether to convert to milliseconds (x 1000)</param>
         public static long ToEpochTime(this DateTime dt, bool toMilliseconds = false)
         {
             var seconds = (long) (dt - new DateTime(1970, 1, 1, 0, 0, 0)).TotalSeconds;
@@ -187,15 +217,21 @@ namespace StackExchange.Opserver
         /// <summary>
         /// Converts to Date given an Epoch time
         /// </summary>
+        /// <param name="epoch">The epoch to get a date value from</param>
         public static DateTime ToDateTime(this long epoch) => new DateTime(1970, 1, 1, 0, 0, 0).AddSeconds(epoch);
 
         /// <summary>
         /// Returns a humanized string indicating how long ago something happened, eg "3 days ago".
         /// For future dates, returns when this DateTime will occur from DateTime.UtcNow.
         /// </summary>
+        /// <param name="dt">The time to represent.</param>
+        /// <param name="includeTime">Whether to include the time portion.</param>
+        /// <param name="asPlusMinus">Whether to compare simply (e.g. "+5 sec").</param>
+        /// <param name="compareTo">The time to compare to (default: UTC now).</param>
+        /// <param name="includeSign">Whether to include a +/- prefix.</param>
         public static string ToRelativeTime(this DateTime dt, bool includeTime = true, bool asPlusMinus = false, DateTime? compareTo = null, bool includeSign = true)
         {
-            var comp = (compareTo ?? DateTime.UtcNow);
+            var comp = compareTo ?? DateTime.UtcNow;
             if (asPlusMinus)
             {
                 return dt <= comp
@@ -242,7 +278,7 @@ namespace StackExchange.Opserver
             if (utcNow.Year == dt.Year) return "on " + dt.ToString(includeTime ? "MMM %d 'at' %H:mmm" : "MMM %d");
             return "on " + dt.ToString(includeTime ? @"MMM %d \'yy 'at' %H:mmm" : @"MMM %d \'yy");
         }
-        
+
         private static string ToRelativeTimeSimple(TimeSpan ts, string sign)
         {
             var delta = ts.TotalSeconds;
@@ -256,15 +292,24 @@ namespace StackExchange.Opserver
         /// <summary>
         /// Returns a string with all the DBML-mapped property names and their values. Each tuple will be separated by 'joinSeparator'.
         /// </summary>
-        public static string GetPropertyNamesAndValues(this object o, string joinSeparator = "\n", string prefix = "")
+        /// <param name="obj">The object to get properties form.</param>
+        /// <param name="joinSeparator">The separator to use in the output.</param>
+        /// <param name="prefix">The prefix to append to each property.</param>
+        public static string GetPropertyNamesAndValues(this object obj, string joinSeparator = "\n", string prefix = null)
         {
-            if (o == null) return "";
-            var props = o.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            if (obj == null) return "";
+            var props = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var sb = StringBuilderCache.Get();
             foreach (var p in props)
             {
-                if (sb.Length > 0) sb.Append(joinSeparator);
-                sb.Append(prefix).Append(p.Name).Append(": ").Append(p.GetValue(o, null));
+                if (sb.Length > 0) {
+                    sb.Append(joinSeparator);
+                }
+                if (prefix != null)
+                {
+                    sb.Append(prefix);
+                }
+                sb.Append(p.Name).Append(": ").Append(p.GetValue(obj, null));
             }
             return sb.ToStringRecycle();
         }
@@ -272,6 +317,7 @@ namespace StackExchange.Opserver
         /// <summary>
         /// Converts a raw long into a readable size
         /// </summary>
+        /// <param name="size">The byte size to render</param>
         public static string ToHumanReadableSize(this long size) => string.Format(new FileSizeFormatProvider(), "{0:fs}", size);
 
         public static string ToComma(this int? number, string valueIfZero = null) => number.HasValue ? ToComma(number.Value, valueIfZero) : "";
@@ -304,24 +350,19 @@ namespace StackExchange.Opserver
 
             return sb.ToStringRecycle().Trim();
         }
-        
+
         /// <summary>
-        /// Adds a key/value pair for logging to an exception, one that'll appear in exceptional
+        /// Adds a key/value pair for logging to an <see cref="Exception"/>, one that'll appear in exceptional
         /// </summary>
+        /// <typeparam name="T">The type of exception bring logged.</typeparam>
+        /// <param name="ex">The exception to add data to.</param>
+        /// <param name="key">The key to add.</param>
+        /// <param name="value">The value to add.</param>
         public static T AddLoggedData<T>(this T ex, string key, string value) where T : Exception
         {
             ex.Data[ExceptionLogPrefix + key] = value;
             return ex;
         }
-
-        /// <summary>
-        /// Does a Step with the location of caller as the label.
-        /// </summary>
-        public static IDisposable StepHere(this MiniProfiler profiler,
-            [CallerMemberName] string memberName = "",
-            [CallerFilePath] string sourceFilePath = "",
-            [CallerLineNumber] int sourceLineNumber = 0) =>
-                profiler?.Step($"{memberName} - {Path.GetFileName(sourceFilePath)}:{sourceLineNumber.ToString()}");
 
         private static readonly ConcurrentDictionary<string, object> _getSetNullLocks = new ConcurrentDictionary<string, object>();
 
@@ -369,15 +410,16 @@ namespace StackExchange.Opserver
                 Interlocked.CompareExchange(ref totalGetSetAsyncError, 0, 0));
 
         /// <summary>
-        /// 
-        /// lookup refreshes the data if necessary, passing the old data if we have it.
-        /// 
-        /// durationSecs is the "time before stale" for the data
-        /// serveStaleSecs is the maximum amount of time to serve data once it becomes stale
-        /// 
-        /// Note that one unlucky caller when the data is stale will block to fill the cache,
-        /// everybody else will get stale data though.
+        /// Gets the current data via <paramref name="lookup"/>. 
+        /// When data is missing or stale (older than <paramref name="duration"/>), a background refresh is 
+        /// initiated on stale fetches still within <paramref name="staleDuration"/> after <paramref name="duration"/>.
         /// </summary>
+        /// <typeparam name="T">The type of value to get.</typeparam>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The cache key to use.</param>
+        /// <param name="lookup">Refreshes the data if necessary, passing the old data if we have it.</param>
+        /// <param name="duration">The time to cache the data, before it's considered stale.</param>
+        /// <param name="staleDuration">The time available to serve stale data, while a background fetch is performed.</param>
         public static T GetSet<T>(this LocalCache cache, string key, Func<T, MicroContext, T> lookup, TimeSpan duration, TimeSpan staleDuration)
             where T : class
         {
@@ -500,7 +542,7 @@ namespace StackExchange.Opserver
     {
         private const int DefaultPrecision = 2;
         private static readonly IList<string> Units = new List<string> { "", "K", "M", "G", "T" };
-        
+
         /// <summary>
         /// Formats the value as a filesize in bytes (KB, MB, etc.)
         /// </summary>
@@ -509,7 +551,7 @@ namespace StackExchange.Opserver
         /// <param name="precision">How much precision to show, defaults to 2</param>
         /// <param name="zero">String to show if the value is 0</param>
         /// <returns>Filesize and quantifier formatted as a string.</returns>
-        public static string ToSize(this int bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") => 
+        public static string ToSize(this int bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") =>
             ToSize((double)bytes, unit, precision, zero: zero);
 
         /// <summary>
@@ -520,7 +562,7 @@ namespace StackExchange.Opserver
         /// <param name="precision">How much precision to show, defaults to 2</param>
         /// <param name="zero">String to show if the value is 0</param>
         /// <returns>Filesize and quantifier formatted as a string.</returns>
-        public static string ToSize(this long bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") => 
+        public static string ToSize(this long bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") =>
             ToSize((double)bytes, unit, precision, zero: zero);
 
         /// <summary>
@@ -531,7 +573,7 @@ namespace StackExchange.Opserver
         /// <param name="precision">How much precision to show, defaults to 2</param>
         /// <param name="zero">String to show if the value is 0</param>
         /// <returns>Filesize and quantifier formatted as a string.</returns>
-        public static string ToSize(this float bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") => 
+        public static string ToSize(this float bytes, string unit = "B", int precision = DefaultPrecision, string zero = "n/a") =>
             ToSize((double)bytes, unit, precision, zero: zero);
 
         /// <summary>

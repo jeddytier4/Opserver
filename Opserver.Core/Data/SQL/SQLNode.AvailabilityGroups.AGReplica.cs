@@ -67,7 +67,7 @@ namespace StackExchange.Opserver.Data.SQL
                 get
                 {
                     // Don't alert on empty AGs
-                    if (!Databases.Any())
+                    if (Databases.Count == 0)
                     {
                         return MonitorStatus.Good;
                     }
@@ -87,11 +87,12 @@ namespace StackExchange.Opserver.Data.SQL
                     return Databases.GetWorstStatus();
                 }
             }
+
             public string MonitorStatusReason
             {
                 get
                 {
-                    if (Databases.Any() && SynchronizationHealth.HasValue)
+                    if (Databases.Count > 0 && SynchronizationHealth.HasValue)
                     {
                         if (SynchronizationHealth == SynchronizationHealths.Healthy)
                             return null;
